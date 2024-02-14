@@ -251,38 +251,116 @@ def field_016(value, record):
 
 # 5.17 Waypoint Description Code (DESC CODE)
 def field_017(value, record):
-    s = ''
-    match value[0]:
-        case 'A':
-            s += ('Airport as Fix')
-        case 'E':
-            s += ('Essential Waypoint')
-        case 'F':
-            s += ('Off Airway Floating Waypoint')
-        case 'G':
-            s += ('Runway/Helipad as Fix')
-        case 'H':
-            s += ('Heliport as Waypoint')
-        case 'N':
-            s += ('NDB Navaid as Waypoint')
-        case 'P':
-            s += ('Phantom Waypoint')
-        case 'R':
-            s += ('Non-Essential Waypoint')
-        case 'T':
-            s += ('Transition Essential Waypoint')
-        case 'V':
-            s += ('VHF Navaid As Fix')
+    s = ""
+    match value[0]:  # column 40
+        case "A":
+            s += "Airport as Fix"
+        case "E":
+            s += "Essential Waypoint"
+        case "F":
+            s += "Off Airway Floating Waypoint"
+        case "G":
+            s += "Runway/Helipad as Fix"
+        case "H":
+            s += "Heliport as Waypoint"
+        case "N":
+            s += "NDB Navaid as Waypoint"
+        case "P":
+            s += "Phantom Waypoint"
+        case "R":
+            s += "Non-Essential Waypoint"
+        case "T":
+            s += "Transition Essential Waypoint"
+        case "V":
+            s += "VHF Navaid As Fix"
         case _:
             pass
-    # TODO: finish this
+
+    match value[1]:  # column 41
+        case "B":
+            s += "Flyover Waypoint, Ending Leg"
+        case "E":
+            s += "End of Continuous Segment"
+        case "U":
+            s += "Uncharted Airway Intersection"
+        case "Y":
+            s += "Fly-Over Waypoint"
+
+    match value[2]:  # column 42
+        case "A":
+            s += "Unnamed Stepdown Fix Final Approach Segment"
+        case "B":
+            s += "Unnamed Stepdown Fix Intermediate Approach Segment"
+        case "C":
+            s += "ATC Compulsory Reporting Point"
+        case "G":
+            s += "Oceanic Gateway Waypoint"
+        case "M":
+            s += "First Leg of Missed Approach Procedure"
+        case "R":
+            s += "Fix used for turning final approach"
+        case "S":
+            s += "Named Stepdown Fix"
+
+    match value[3]:  # column 43
+        case "A":
+            s += "Initial Approach Fix"
+        case "B":
+            s += "Intermediate Approach Fix"
+        case "C":
+            s += "Holding at Initial Approach Fix"
+        case "D":
+            s += "Initial Approach Fix at FACF"
+        case "E":
+            s += "Final End Point"
+        case "F":
+            s += "Final Approach Fix"
+        case "G":
+            s += "Source provided Enroute Waypoint without Holding"
+        case "H":
+            s += "Source provided Enroute Waypoint with Holding"
+        case "I":
+            s += "Final Approach Course Fix"
+        case "M":
+            s += "Missed Approach Point"
+        case "N":
+            s += "Engine Out SID Missed Approach Disarm Point"
+        case "P":
+            s += "Initial Departure Fix"
+        case "Q":
+            s += "Quiet Climb SID Restore Point"
+        case _:
+            pass
 
     return s
 
 
 # 5.18 Boundary Code (BDY CODE)
 def field_018(value, record):
-    return value
+    s = ""
+    match value[0]:  # column 42
+        case "U":
+            s += "USA"
+        case "C":
+            s += "Canada"
+        case "P":
+            s += "Pacific"
+        case "L":
+            s += "Latin America"
+        case "S":
+            s += "South America"
+        case "1":
+            s += "South Pacific"
+        case "E":
+            s += "Europe"
+        case "2":
+            s += "Eastern Europe"
+        case "M":
+            s += "Middle East, South Asia"
+        case "A":
+            s += "Africa"
+
+    return s
 
 
 # 5.19 Level (LEVEL)
