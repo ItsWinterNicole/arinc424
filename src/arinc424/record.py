@@ -78,7 +78,8 @@ class Record():
             return False
 
         self.raw = line.strip()
-        x1, x2 = line[4:6], line[4] + line[12]
+        x1 = line[4:6]
+        x2 = line[4] + line[12]
         if x1 in records.keys():
             self.code = x1
         elif x2 in records.keys():
@@ -96,7 +97,9 @@ class Record():
         table = PrettyTable(field_names=['Field', 'Value', 'Decoded'])
         table.align = 'l'
         for field in self.fields:
-            table.add_row([field.name, "'{}'".format(field.value), field.decode(self)])
+            table.add_row([field.name,                 # Field column
+                           "'{}'".format(field.value), # Value column
+                           field.decode()])            # Decoded column
         match format:
             case None:
                 print(table)
@@ -218,7 +221,7 @@ class Airway():
             Field("Continuation Record No",                  r[38],         decoder.field_016),
             Field("Waypoint Desc Code",                      r[39:43],      decoder.field_017),
             Field("Boundary Code",                           r[43],         decoder.field_018),
-            Field("Route Type",                              r[44],         decoder.field_007),
+            Field("Route Type",                              r[44],         decoder.field_007ER),
             Field("Level",                                   r[45],         decoder.field_019),
             Field("Direction Restriction",                   r[46],         decoder.field_115),
             Field("Cruise Table Indicator",                  r[47:49],      decoder.field_134),
@@ -306,7 +309,7 @@ class Airway():
             Field("Continuation Record No",                  r[38],         decoder.field_016),
             Field("Waypoint Desc Code",                      r[39:43],      decoder.field_017),
             Field("Boundary Code",                           r[43],         decoder.field_018),
-            Field("Route Type",                              r[44],         decoder.field_007),
+            Field("Route Type",                              r[44],         decoder.field_007ER),
             Field("Level",                                   r[45],         decoder.field_019),
             Field("Direction Restriction",                   r[46],         decoder.field_115),
             Field("Cruise Table Indicator",                  r[47:49],      decoder.field_134),
@@ -1488,7 +1491,7 @@ class PreferredRoute():
             Field("SID/STAR/AWY Ident",         r[51:57],       decoder.field_078),
             Field("AREA Code",                  r[57:60],       decoder.field_003),
             Field("Level",                      r[60],          decoder.field_019),
-            Field("Route Type",                 r[61],          decoder.field_007),
+            Field("Route Type",                 r[61],          decoder.field_007ET),
             Field("Initial Airport/Fix",        r[62:67],       decoder.field_194),
             Field("ICAO Code",                  r[67:69],       decoder.field_014),
             Field("Section Code",               r[69:71],       decoder.field_004),
@@ -3072,6 +3075,22 @@ class SIDSTARApp():
                 case _:
                     raise ValueError("bad SID/STAR/APP")
 
+    def f007dec_select(self, line):
+        f007_map = {
+            'HD': decoder.field_007_D,
+            'PD': decoder.field_007_D,
+            'HE': decoder.field_007_E,
+            'PE': decoder.field_007_E,
+            'HF': decoder.field_007_F,
+            'PF': decoder.field_007_F,
+        }
+        x1 = line[4:6]
+        x2 = line[4] + line[12]
+        if x1 in f007_map.keys():
+            return f007_map[x1]
+        elif x2 in f007_map.keys():
+            return f007_map[x2]
+
     def read_primary(self, r):
         return [
             Field("Record Type",                                r[0],           decoder.field_002),
@@ -3080,7 +3099,7 @@ class SIDSTARApp():
             Field("Airport Identifier",                         r[6:10],        decoder.field_006),
             Field("ICAO Code",                                  r[10:12],       decoder.field_014),
             Field("SID/STAR/Approach Identifier",               r[13:19],       decoder.field_009),
-            Field("Route Type",                                 r[19],          decoder.field_007),
+            Field("Route Type",                                 r[19],          self.f007dec_select(r)),
             Field("Transition Identifier",                      r[20:25],       decoder.field_011),
             Field("Sequence Number",                            r[26:29],       decoder.field_012),
             Field("Fix Identifier",                             r[29:34],       decoder.field_013),
@@ -3113,8 +3132,8 @@ class SIDSTARApp():
             Field("Section Code (3)",                           r[114:116],     decoder.field_004),
             Field("GNSS/FMS Indication",                        r[116],         decoder.field_222),
             Field("Speed Limit Description",                    r[117],         decoder.field_261),
-            Field("Apch Route Qualifier 1",                     r[118],         decoder.field_007),
-            Field("Apch Route Qualifier 2",                     r[119],         decoder.field_007),
+            Field("Apch Route Qualifier 1",                     r[118],         self.f007dec_select(r)),
+            Field("Apch Route Qualifier 2",                     r[119],         self.f007dec_select(r)),
             Field("File Record No",                             r[123:128],     decoder.field_031),
             Field("Cycle Date",                                 r[128:132],     decoder.field_032)
         ]
@@ -3127,7 +3146,7 @@ class SIDSTARApp():
             Field("Airport Identifier",                         r[6:10],        decoder.field_006),
             Field("ICAO Code",                                  r[10:12],       decoder.field_014),
             Field("SID/STAR/Approach Identifier",               r[13:19],       decoder.field_009),
-            Field("Route Type",                                 r[19],          decoder.field_007),
+            Field("Route Type",                                 r[19],          self.f007dec_select(r)),
             Field("Transition Identifier",                      r[20:25],       decoder.field_011),
             Field("Sequence Number",                            r[26:29],       decoder.field_012),
             Field("Fix Identifier",                             r[29:34],       decoder.field_013),
@@ -3148,8 +3167,8 @@ class SIDSTARApp():
             Field("Localizer Only Altitude",                    r[76:81],       decoder.field_030),
             Field("Localizer Only Vertical Angle",              r[81:85],       decoder.field_070),
             Field("RNP",                                        r[89:92],       decoder.field_211),
-            Field("Apch Route Qualifier 1",                     r[118],         decoder.field_007),
-            Field("Apch Route Qualifier 2",                     r[119],         decoder.field_007),
+            Field("Apch Route Qualifier 1",                     r[118],         self.f007dec_select(r)),
+            Field("Apch Route Qualifier 2",                     r[119],         self.f007dec_select(r)),
             Field("File Record No",                             r[123:128],     decoder.field_031),
             Field("Cycle Date",                                 r[128:132],     decoder.field_032)
         ]
@@ -3162,7 +3181,7 @@ class SIDSTARApp():
             Field("Airport Identifier",                         r[6:10],        decoder.field_006),
             Field("ICAO Code",                                  r[10:12],       decoder.field_014),
             Field("SID/STAR/Approach Identifier",               r[13:19],       decoder.field_009),
-            Field("Route Type",                                 r[19],          decoder.field_007),
+            Field("Route Type",                                 r[19],          self.f007dec_select(r)),
             Field("Transition Identifier",                      r[20:25],       decoder.field_011),
             Field("Sequence Number",                            r[26:29],       decoder.field_012),
             Field("Fix Identifier",                             r[29:34],       decoder.field_013),
@@ -3185,7 +3204,7 @@ class SIDSTARApp():
             Field("Airport Identifier",                         r[6:10],        decoder.field_006),
             Field("ICAO Code",                                  r[10:12],       decoder.field_014),
             Field("SID/STAR/Approach Identifier",               r[13:19],       decoder.field_009),
-            Field("Route Type",                                 r[19],          decoder.field_007),
+            Field("Route Type",                                 r[19],          self.f007dec_select(r)),
             Field("Transition Identifier",                      r[20:25],       decoder.field_011),
             Field("Sequence Number",                            r[26:29],       decoder.field_012),
             Field("Fix Identifier",                             r[29:34],       decoder.field_013),
@@ -3199,8 +3218,8 @@ class SIDSTARApp():
             Field("LNAV/VNAV Level of Service Name",            r[52:62],       decoder.field_275),
             Field("LNAV Authorized for SBAS",                   r[62],          decoder.field_276),
             Field("LNAV Level of Service Name",                 r[63:73],       decoder.field_275),
-            Field("Apch Route Qualifier 1",                     r[118],         decoder.field_007),
-            Field("Apch Route Qualifier 2",                     r[119],         decoder.field_007),
+            Field("Apch Route Qualifier 1",                     r[118],         self.f007dec_select(r)),
+            Field("Apch Route Qualifier 2",                     r[119],         self.f007dec_select(r)),
             Field("File Record No",                             r[123:128],     decoder.field_031),
             Field("Cycle Date",                                 r[128:132],     decoder.field_032)
         ]
