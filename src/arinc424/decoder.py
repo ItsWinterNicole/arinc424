@@ -27,7 +27,7 @@ def field_002(value, record):
     elif value == 'T':
         return 'Tailored'
     else:
-        return 'Error: invalid record type'
+        raise ValueError("Invalid Record Type", value)
 
 
 # 5.3 Customer / Area Code
@@ -428,6 +428,12 @@ def field_025(value, record):
 
 # 5.26 Outbound Magnetic Course (OB MAG CRS)
 def field_026(value, record):
+    value = value.strip()
+    if len(value) > 0:
+        if value.isalnum() is False or len(value) > 4:
+            raise ValueError('Invalid Outbound Magnetic Course', value)
+        else:
+            return "{:.1f}".format(float(value)/10)
     return value
 
 
@@ -469,10 +475,13 @@ def field_033(value, record):
 
 # 5.34 VOR/NDB Frequency (VOR/NDB FREQ)
 def field_034(value, record):
-    if (value.isnumeric()):
-        return "{:.2f}".format(float(value)/100)
-    else:
-        return "BAD VALUE"
+    value = value.strip()
+    if len(value) > 0:
+        if value.isnumeric() is False:
+            raise ValueError('Invalid VOR/NDB Frequency', value)
+        else:
+            return "{:.2f}".format(float(value)/100)
+    return value
 
 
 # 5.35 NAVAID Class (CLASS)
@@ -807,18 +816,20 @@ def field_081(value, record):
 
 # 5.82 Waypoint Usage
 def field_082(value, record):
-    if value == ' B':
-        return 'HI and LO Altitude'
-    elif value == ' H':
-        return 'HI Altitude'
-    elif value == ' L':
-        return 'LO Altitude'
-    elif value == '  ':
-        return 'Terminal Use Only'
-    elif value == 'R ':
-        return 'RNAV'
+    wp = ''
+    if value[1] == 'B':
+        wp = wp + 'HI and LO Altitude'
+    elif value[1] == 'H':
+        wp = wp + 'HI Altitude'
+    elif value[1] == 'L':
+        wp = wp + 'LO Altitude'
+    elif value[1] == ' ':
+        wp = wp + 'Terminal Use Only'
+    elif value[0] == 'R':
+        wp = wp + 'RNAV'
     else:
-        raise ValueError("Invalid Waypoint Usage")
+        raise ValueError(f"Invalid Waypoint Usage: '{value}'")
+    return wp
 
 
 # 5.83 To FIX
@@ -1997,12 +2008,24 @@ def field_269(value, record):
     if (value.isnumeric()):
         return float(value)/10
     else:
-        return "BAD VALUE"
+        raise ValueError(f'Bad Helicopter Procedure Course: {value}')
 
 
 # 5.270 TCH Value Indicator (TCHVI)
 def field_270(value, record):
-    return value
+    match value:
+        case 'I':
+            return 'ILS or MLS Glideslope'
+        case 'R':
+            return 'RNAV Procedure'
+        case 'V':
+            return 'Visual Glideslope Indicator (VGSI)'
+        case 'D':
+            return 'Default Value (40 or 50 feet)'
+        case ' ':   # this is apparently allowed to be empty, see ARINC SPECIFICATION 424 - Page 165
+            return value
+        case _:
+            raise ValueError(f'Bad TCH Value Indicator: {value}')
 
 
 # 5.271 Procedure Turn (PROC TURN)
