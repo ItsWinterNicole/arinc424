@@ -1943,7 +1943,9 @@ def field_268(value):
 # 5.269 Helicopter Procedure Course (HPC)
 def field_269(value):
     if (value.isnumeric()):
-        return float(value)/10
+        return int(value)
+    elif (value == "   "):
+        return float('nan') # '   ' is /Not a Number, but valid for a -23 rec.
     else:
         raise ValueError(f'Bad Helicopter Procedure Course: {value}')
 
@@ -1993,3 +1995,10 @@ def field_275(value):
 # 5.276 ??
 def field_276(value):
     return value
+
+
+# 5.320 SBAS Final Approach Course
+def field_320(value):
+    return value
+
+

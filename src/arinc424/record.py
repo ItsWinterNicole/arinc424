@@ -2944,7 +2944,8 @@ class PathPoint():
             Field("(LTP) Orthometric Height",               r[40:46],       decoder.field_227),
             Field("Approach Type Identifier",               r[46:56],       decoder.field_262),
             Field("GNSS Channel Number",                    r[56:61],       decoder.field_244),
-            Field("Helicopter Procedure Course",            r[71:123],      decoder.field_269),
+            Field("SBAS Final Approach Course (-23 only)",  r[61:65],       decoder.field_320),
+            Field("Helicopter Procedure Course (-18 only)", r[71:74],       decoder.field_269),
             Field("File Record No",                         r[123:128],     decoder.field_031),
             Field("Cycle Date",                             r[128:132],     decoder.field_032)
         ]
