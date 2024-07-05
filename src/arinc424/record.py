@@ -1354,18 +1354,26 @@ class MLS():
 # 4.1.23 Enroute Communications Records (EV)
 class EnrouteComms():
 
-    cont_idx = 55
-    app_idx = 56
+    # -18 values:
+    # cont_idx = 55
+    # app_idx = 56
+    # -23 values:
+    cont_idx = 21
+    app_idx = 22
 
     def read(self, r):
         if int(r[self.cont_idx]) < 2:
             return self.read_primary(r)
         else:
             match r[self.app_idx]:
-                case ' ':
+                case 'E': # -23 ext record.
+                    return self.read_cont(r)
+                case ' ': # -18 ext record.
                     return self.read_cont(r)
                 case 'T':
                     return self.read_timeop(r)
+                case 'U':
+                    return [] # TODO # -23 Narrative Time Data.
                 case _:
                     raise ValueError('{}\n{}\n{}'.format("Unknown Application",
                                                          r[self.app_idx], r))
@@ -2889,6 +2897,10 @@ class PathPoint():
             return self.read_primary(line)
         else:
             match line[self.app_idx]:
+                case 'A':
+                    # SOME TEST DATA SUGGESTED they might use 'A' for
+                    # primary extension instead of 'E'.  <Shrug>
+                    return self.read_ext(line)
                 case 'E':
                     return self.read_ext(line)
                 case _:
