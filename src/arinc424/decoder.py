@@ -2,223 +2,189 @@ from collections import defaultdict
 import string
 
 
-class Field():
-
-    def __init__(self, name, value, decode_fn):
-        self.name = name
-        self.value = value
-        self.decode_fn = decode_fn
-
-    def decode(self):
-        return self.decode_fn(self.value)
-
-
-# This file decodes fields within records based on
-# Chapter 5 - Field Definitions
-
-def def_val():
-    return "<UNKNOWN>"
-
-
-# 5.2 Record Type
-def field_002(value):
-    if value == 'S':
-        return 'Standard'
-    elif value == 'T':
-        return 'Tailored'
-    else:
-        raise ValueError("Invalid Record Type", value)
+class Field_5_002(StrTable):
+    S = ('S', 'Standard')
+    T = ('T', 'Tailored')
 
 
 # 5.3 Customer / Area Code
-def field_003(value):
-    match value:
-        case 'USA':
-            return 'United States of America'
-        case 'AFR':
-            return 'Africa'
-        case 'CAN':
-            return 'Canada'
-        case 'EEU':
-            return 'Eastern Europe and Asia'
-        case 'EUR':
-            return 'Europe'
-        case 'LAM':
-            return 'Latin America'
-        case 'MES':
-            return 'Middle East'
-        case 'PAC':
-            return 'Pacific'
-        case 'SAM':
-            return 'Southern America'
-        case 'SPA':
-            return 'South Pacific'
-        case _:
-            return '<UNKNOWN>'
+class Field_5_003(StrTableWDefault):
+    UNKNOWN =              (auto(), '<UNKNOWN>')
+    UNITED_STATES =        ('USA', 'United States of America')
+    AFRICA =               ('AFR', 'Africa')
+    CANADA =               ('CAN', 'Canada')
+    EASTERN_EUR_AND_ASIA = ('EEU', 'Eastern Europe and Asia')
+    EUROPE =               ('EUR', 'Europe')
+    LATIN_AMERICA =        ('LAM', 'Latin America')
+    MIDDLE_EAST =          ('MES', 'Middle East')
+    PACIFIC =              ('PAC', 'Pacific')
+    SOUTH_AMERICA =        ('SAM', 'Southern America')
+    SOUTH_PACIFIC =        ('SPA', 'South Pacific')
 
 
 # 5.4 & 5.5 Section Code & Subsection Code
-def field_004(value):
-    if (value.strip() == ''):
-        return value
-    sections = defaultdict(def_val)
-    sections['AS'] = 'Grid MORA'
-    sections['D '] = 'VHF Navaid'
-    sections['DB'] = 'NDB Navaid'
-    sections['EA'] = 'Waypoint'
-    sections['EM'] = 'Airways Marker'
-    sections['EP'] = 'Holding Pattern'
-    sections['ER'] = 'Airways and Route'
-    sections['ET'] = 'Preferred Route'
-    sections['EU'] = 'Airway Restrictions'
-    sections['EV'] = 'Enroute Communication'
-    sections['HA'] = 'Heliport Pads'
-    sections['HC'] = 'Heliport Terminal Waypoint'
-    sections['HD'] = 'Heliport SID'
-    sections['HE'] = 'Heliport STAR'
-    sections['HF'] = 'Heliport Approach Procedure'
-    sections['HK'] = 'Heliport TAA'
-    sections['HS'] = 'Heliport MSA'
-    sections['HV'] = 'Heliport Communication'
-    sections['PA'] = 'Airport Reference Point'
-    sections['PB'] = 'Airport Gates'
-    sections['PC'] = 'Airport Terminal Waypoint'
-    sections['PD'] = 'Airport SID'
-    sections['PE'] = 'Airport STAR'
-    sections['PF'] = 'Airport Approach Procedure'
-    sections['PG'] = 'Airport Runway'
-    sections['PI'] = 'Airport Localizer/Glideslope'
-    sections['PK'] = 'Airport TAA'
-    sections['PL'] = 'Airport MLS'
-    sections['PM'] = 'Airport Localizer Marker'
-    sections['PN'] = 'Airport Terminal'
-    sections['PP'] = 'Airport Path'
-    sections['PR'] = 'Airport Flt Planning ARR/DEP'
-    sections['PS'] = 'Airport MSA'
-    sections['PT'] = 'Airport GLS Station'
-    sections['PV'] = 'Airport Communication'
-    sections['R '] = 'Company Route'
-    sections['RA'] = 'Alternate Record'
-    sections['TC'] = 'Cruising Table'
-    sections['TG'] = 'Geographical Reference'
-    sections['TN'] = 'RNAV Name Table'
-    sections['UC'] = 'Controller Airspace'
-    sections['UF'] = 'Airspace FIR/UIR'
-    sections['UR'] = 'Restrictive Airspace'
-    return sections[value]
+class Field_5_004(StrTableWDefault):
+    UNKNOWN =              (auto(), '<UNKNOWN>')
+    GRID_MORA =            ('AS', 'Grid MORA')
+    VHF_NAVAID =           ('D ', 'VHF Navaid')
+    NDP_NAVAID =           ('DB', 'NDB Navaid')
+    WAYPOINT =             ('EA', 'Waypoint')
+    AIRWAYS_MARKER =       ('EM', 'Airways Marker')
+    HOLDING_PATTERN =      ('EP', 'Holding Pattern')
+    AIRWAYS_AND_ROUTE =    ('ER', 'Airways and Route')
+    PREFERRED_ROUTE =      ('ET', 'Preferred Route')
+    AIRWAY_RESTRICTIONS =  ('EU', 'Airway Restrictions')
+    ENROUTE_COM =          ('EV', 'Enroute Communication')
+    HELI_PADS =            ('HA', 'Heliport Pads')
+    HELI_TRML_WPT =        ('HC', 'Heliport Terminal Waypoint')
+    HELI_SID =             ('HD', 'Heliport SID')
+    HELI_STAR =            ('HE', 'Heliport STAR')
+    HELI_TAA =             ('HF', 'Heliport TAA')
+    HELI_MSA =             ('HS', 'Heliport MSA')
+    HELI_COM =             ('HV', 'Heliport Communication')
+    AP_REF_POINT =         ('PA', 'Airport Reference Point')
+    AP_GATES =             ('PB', 'Airport Gates')
+    AP_TRML_WPT =          ('PC', 'Airport Terminal Waypoint')
+    AP_SID =               ('PD', 'Airport SID')
+    AP_STAR =              ('PE', 'Airport STAR')
+    AP_APCH_PROC =         ('PF', 'Airport Approach Procedure')
+    AP_RUNWAY =            ('PG', 'Airport Runway')
+    AP_LLZ_GSLOPE =        ('PI', 'Airport Localizer/Glideslope')
+    AP_TAA =               ('PK', 'Airport TAA')
+    AP_MLS =               ('PL', 'Airport MLS')
+    AP_LLZ_MKR =           ('PM', 'Airport Localizer Marker')
+    AP_TRML =              ('PN', 'Airport Terminal')
+    AP_PATH =              ('PP', 'Airport Path')
+    AP_FLT_PLN_ARR_DEP =   ('PR', 'Airport Flt Planning ARR/DEP')
+    AP_MSA =               ('PS', 'Airport MSA')
+    AP_GLS_STATION =       ('PT', 'Airport GLS Station')
+    AP_COM =               ('PV', 'Airport Communication')
+    COMPANY_ROUTE =        ('R ', 'Company Route')
+    ALTERNATE_REC =        ('RA', 'Alternate Record')
+    CRUISING_TAB =         ('TC', 'Cruising Table')
+    GEOG_REF =             ('TG', 'Geographical Reference')
+    RNAV_NAME_TAB =        ('TN', 'RNAV Name Table')
+    CTLR_AIRSPACE =        ('UC', 'Controller Airspace')
+    AIRSPACE_FIR_UIR =     ('UF', 'Airspace FIR/UIR')
+    RESTR_AIRSPACE =       ('UR', 'Restrictive Airspace')
 
 
 # 5.6 Airport/Heliport Identifier (ARPT/HELI IDENT)
-def field_006(value):
-    return value
-
+class Field_5_006(GenericField):
+    # Nothing to do here.
+    pass
 
 # 5.7 Route Type
 # Note: There are 5 different decoders for field_007.  (Poor spec design
 #       if you ask me) but selection of the correct decoder can be done
 #       at the record level, saving all the decoders from needing access
 #       to the full record.
-def field_007ER(value):
-    d = defaultdict(def_val)
+class Field_007ER(StrTableWDefault):
     # Enroute Airway Records (ER)
-    d['A'] = 'Airline Airway (Tailored Data)'
-    d['C'] = 'Control'
-    d['D'] = 'Direct Route'
-    d['H'] = 'Helicopter Airways'
-    d['O'] = 'Officially Designated Airways'
-    d['R'] = 'RNAV Airways'
-    d['S'] = 'Undesignated ATS Route'
-    return d[value] if d[value] != "bad value" else value + " - BAD VALUE"
+    UNKNOWN =        (auto(), 'Bad Value')
+    AIRLINE_AWY =    ('A', 'Airline Airway (Tailored Data)')
+    CONTROL =        ('C', 'Control')
+    DCT_RTE =        ('D', 'Direct Route')
+    HEL_AWYS =       ('H', 'Helicopter Airways')
+    OFFC_DESG_AWYS = ('O', 'Officially Designated Airways')
+    RNAV_AWYS =      ('R', 'RNAV/RNP Airways')
+    UNDESG_ATS_RTE = ('S', 'Undesignated ATS Route')
+    TACAN_AWY =      ('T', 'TACAN Airway')
 
-def field_007ET(value):
-    d = defaultdict(def_val)
+class Field_007ET(StrTableWDefault):
     # Preferred Route Records (ET)
-    d['C'] = 'North American Routes for North Atlantic Traffic Common Portion'
-    d['D'] = 'Preferential Routes'
-    d['J'] = 'Pacific Oceanic Transition Routes (PACOTS)'
-    d['M'] = 'RNAV Airways'
-    d['N'] = 'Undesignated ATS Route'
-    return d[value] if d[value] != "bad value" else value + " - BAD VALUE"
+    UNKNOWN =          (auto(), 'Bad Value')
+    NA_RTES =          ('C', 'North American Routes for North Atlantic Traffic Common Portion')
+    PREF_RTES =        ('D', 'Preferential Routes')
+    PACOTS =           ('J', 'Pacific Oceanic Transition Routes (PACOTS)')
+    RNAV_AWYS =        ('M', 'RNAV Airways')
+    UNDESG_ATS_RTE =   ('N', 'Undesignated ATS Route')
+    PREFD_OVRFL_RTES = ('O', 'Preferred/Preferential Overflight Toutes.')
+    PREFD_RTES =       ('P', 'Preferred Routes')
+    TFC_OR_SYS_RTES =  ('S', 'Traffic Orientation System Routes (TOS)')
+    TWR_ENRT_CTRL_RTES = ('T', 'Tower Enroute Control Routes (TEC)')
 
-def field_007_D(value):
-    d = defaultdict(def_val)
+class Field_007_D(StrTableWDefault):
     # Preferred & Helo Route Records (PD & HD)
-    d['0'] = 'Engine Out SID'
-    d['1'] = 'SID Runway Transition'
-    d['2'] = 'SID or SID Common Route'
-    d['3'] = 'SID Enroute Transition'
-    d['4'] = 'RNAV SID Runway Transition'
-    d['5'] = 'RNAV SID or SID Common Route'
-    d['6'] = 'RNAV SID Enroute Transition'
-    d['F'] = 'FMS SID Runway Transition'
-    d['M'] = 'FMS SID or SID Common Route'
-    d['S'] = 'FMS SID Enroute Transition'
-    d['T'] = 'Vector SID Runway Transition'
-    d['V'] = 'Vector SID Enroute Transition'
-    return d[value] if d[value] != "bad value" else value + " - BAD VALUE"
+    UNKNOWN =             (auto(), 'Bad Value')
+    ENG_OUT_SID =         ('0', 'Engine Out SID')
+    SID_RWY_TRSN =        ('1', 'SID Runway Transition')
+    SID_COMN_RTE =        ('2', 'SID or SID Common Route')
+    SID_ENRT_TRSN =       ('3', 'SID Enroute Transition')
+    RNAV_SID_RWY_TRSN =   ('4', 'RNAV SID Runway Transition')
+    RNAV_SID_COMN_RTE =   ('5', 'RNAV SID or SID Common Route')
+    RNAV_SID_ENRT_TRSN =  ('6', 'RNAV SID Enroute Transition')
+    FMS_SID_RWY_TRSN =    ('F', 'FMS SID Runway Transition')
+    FMS_SID_COMN_RTE =    ('M', 'FMS SID or SID Common Route')
+    FMS_SID_ENRT_TRSN =   ('S', 'FMS SID Enroute Transition')
+    VCTR_SID_RWY_TRSN =   ('T', 'Vector SID Runway Transition')
+    VCTR_SID_ENRT_TRSN =  ('V', 'Vector SID Enroute Transition')
 
-def field_007_E(value):
-    d = defaultdict(def_val)
+class Field_007_E(StrTableWDefault):
     # Airport STAR (PE) and Heliport STAR (HE) Records
-    d['1'] = 'STAR Enroute Transition'
-    d['2'] = 'STAR or STAR Common Route'
-    d['3'] = 'STAR Runway Transition'
-    d['4'] = 'RNAV STAR Enroute Transition'
-    d['5'] = 'RNAV STAR or STAR Common Route'
-    d['6'] = 'RNAV STAR Runway Transition'
-    d['7'] = 'Profile Descent Enroute Transition'
-    d['8'] = 'Profile Descent Common Route'
-    d['9'] = 'Profile Descent Runway Transition'
-    d['F'] = 'FMS STAR Enroute Transition'
-    d['M'] = 'FMS STAR or STAR Common Route'
-    d['S'] = 'FMS STAR Runway Transition'
-    return d[value] if d[value] != "bad value" else value + " - BAD VALUE"
+    UNKNOWN =             (auto(), 'Bad Value')
+    STAR_ENRT_TRSN =      ('1', 'STAR Enroute Transition')
+    STAR_COMN_RTE =       ('2', 'STAR or STAR Common Route')
+    STAR_RWY_TRSN =       ('3', 'STAR Runway Transition')
+    RNAV_STAR_ENRT_TRSN = ('4', 'RNAV STAR Enroute Transition')
+    RNAV_STAR_COMN_RTE =  ('5', 'RNAV STAR or STAR Common Route')
+    RNAV_STAR_RWY_TRSN =  ('6', 'RNAV STAR Runway Transition')
+    PROF_DESC_ENRT_TRSN = ('7', 'Profile Descent Enroute Transition')
+    PROF_DESC_COMN_RTE =  ('8', 'Profile Descent Common Route')
+    PROF_DESC_RWY_TRSN =  ('9', 'Profile Descent Runway Transition')
+    FMS_STAR_ENRT_TRSN =  ('F', 'FMS STAR Enroute Transition')
+    FMS_STAR_COMN_RTE =   ('M', 'FMS STAR or STAR Common Route')
+    FMS_STAR_RWY_TRSN =   ('S', 'FMS STAR Runway Transition')
 
-def field_007_F(value):
-    d = defaultdict(def_val)
+class Field_007_F(StrTableWDefault):
     # Airport STAR (PF) and Heliport STAR (HF) Records
-    d['A'] = 'Approach Transition'
-    d['B'] = 'Localizer/Backcourse Approach'
-    d['D'] = 'VORDME Approach'
-    d['F'] = 'Flight Management System (FMS) Approach'
-    d['G'] = 'Instrument Guidance System (IGS) Approach'
-    d['I'] = 'Instrument Landing System (ILS) Approach'
-    d['J'] = 'GNSS Landing System (GLS) Approach'
-    d['L'] = 'Localizer Only (LOC) Approach'
-    d['M'] = 'Microwave Landing System (MLS) Approach'
-    d['N'] = 'Non-Directional Beacon (NDB) Approach'
-    d['P'] = 'Global Position System (GPS) Approach'
-    d['Q'] = 'Non-Directional Beacon + DME (NDB+DME) Approach'
-    d['R'] = 'Area Navigation (RNAV) Approach (Note 1)'
-    d['S'] = 'VOR Approach using VORDME/VORTAC'
-    d['T'] = 'TACAN Approach'
-    d['U'] = 'Simplified Directional Facility (SDF) Approach'
-    d['V'] = 'VOR Approach'
-    d['W'] = 'Microwave Landing System (MLS), Type A Approach'
-    d['X'] = 'Localizer Directional Aid (LDA) Approach'
-    d['Y'] = 'Microwave Landing System (MLS), Type B and C Approach'
-    d['Z'] = 'Missed Approach'
-    return d[value] if d[value] != "bad value" else value + " - BAD VALUE"
+    UNKNOWN =        (auto(), 'Bad Value')
+    APCH_TRSN =      ('A', 'Approach Transition')
+    LLZ_APCH =       ('B', 'Localizer/Backcourse Approach')
+    VORDME_APCH =    ('D', 'VORDME Approach')
+    FMS_APCH =       ('F', 'Flight Management System (FMS) Approach')
+    IGS_APCH =       ('G', 'Instrument Guidance System (IGS) Approach')
+    RNAV_W_RNP_PCH = ('H', 'Area Navigation (RNAV) Apch with Rqrd Nav Performance Apch')
+    ILS_APCH =       ('I', 'Instrument Landing System (ILS) Approach')
+    GNSS_GLS_APCH =  ('J', 'GNSS Landing System (GLS) Approach')
+    LOC_APCH =       ('L', 'Localizer Only (LOC) Approach')
+    MLS_APCH =       ('M', 'Microwave Landing System (MLS) Approach')
+    NDB_APCH =       ('N', 'Non-Directional Beacon (NDB) Approach')
+    GPS_APCH =       ('P', 'Global Position System (GPS) Approach')
+    NDB_DME_APCH =   ('Q', 'Non-Directional Beacon + DME (NDB+DME) Approach')
+    RNAV_APCH =      ('R', 'Area Navigation (RNAV) Approach (Note 1)')
+    VORTAC_APCH =    ('S', 'VOR Approach using VORDME/VORTAC')
+    TACAN_APCH =     ('T', 'TACAN Approach')
+    SDF_APCH =       ('U', 'Simplified Directional Facility (SDF) Approach')
+    VOR_APCH =       ('V', 'VOR Approach')
+    MLSA_APCH =      ('W', 'Microwave Landing System (MLS), Type A Approach')
+    LDA_APCH =       ('X', 'Localizer Directional Aid (LDA) Approach')
+    MLSBC_APCH =     ('Y', 'Microwave Landing System (MLS), Type B and C Approach')
+    MISSED_APCH =    ('Z', 'Missed Approach')
 
 
 # 5.8 Route Identifier (ROUTE IDENT)
-def field_008(value):
-    if value.strip().isalnum():
-        return value
-    else:
-        raise ValueError("Route Identifier not alphanumeric", value)
-
+Class Field_5_008(GenericField):
+    @classmethod
+    def validate(self, value):
+        # TODO Might validate length based on route type.
+        # ENRT = 5 max, Prefd = 10 max
+        if value.strip().isalnum():
+            return True
+        return False
 
 # 5.9 SID/STAR Route Identifier (SID/STAR IDENT)
-def field_009(value):
-    if value.strip().isalnum():
-        return value
-    # else:
-    #     raise ValueError("SID/STAR Route Identifier not alphanumeric", value)
-
+Class Field_5_009(Field_5_008):
+    # Same as 5.008 for now.
+    # TODO Validation max = 6 char.
+    pass
 
 # 5.10 Approach Route Identifier (APPROACH IDENT)
-def field_010(value):
+Class Field_5_010(GenericField):
+    @classmethod
+    def validate(self, value):
+        
+
     return f"Approach: {value[0]}, Runway: {value[1:4]}"
 
 
