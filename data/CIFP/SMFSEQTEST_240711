@@ -1,0 +1,33 @@
+SUSAP KSMFK2ESLMMR54CRASY 010CRASYK2EA0E       IF                                             18000                        152042207
+SUSAP KSMFK2ESLMMR54CRASY 020FIOREK2PC0E       TF                                                                          152052207
+SUSAP KSMFK2ESLMMR54CRASY 030CARVVK2PC0E       TF                                 B FL220FL200                             152062207
+SUSAP KSMFK2ESLMMR54CRASY 040SLMMRK2PC0EE      TF                                 B 1700013000     280                     152072207
+SUSAP KSMFK2ESLMMR55      010SLMMRK2PC0E       IF                                 B 170001300018000                        152132207
+SUSAP KSMFK2ESLMMR55      020POZURK2PC0EE      TF                                 + 08000                                  152142207
+SUSAP KSMFK2ESLMMR56RW35B 010POZURK2PC0E       IF                                 + 08000     18000                        152182207
+SUSAP KSMFK2ESLMMR56RW35B 020RICEEK2PC0E       TF                                                                          152192207
+SUSAP KSMFK2ESLMMR56RW35B 030PKAAYK2PC0E       TF                                 + 06000          210                     152202207
+SUSAP KSMFK2ESLMMR56RW35B 040THANNK2PC0E       TF                                                                          152212207
+SUSAP KSMFK2ESLMMR56RW35B 050BANZAK2PC0EY      TF                                   04000                                  152222207
+SUSAP KSMFK2ESLMMR56RW35B 060BANZAK2PC0EE      FM BAM K2      231424851677    D                                            152232207
+SUSAP KSMFK2FH35RZ APIECH 010PIECHK2PC0E  A    IF                                 + 04000     18000                 A FS   153182203
+SUSAP KSMFK2FH35RZ APIECH 020BANZAK2PC0E  B 010TF                                   04000          210              A-FS   153192006
+SUSAP KSMFK2FH35RZ APIECH 030ZITULK2PC0E    010TF                                 + 03200                           A FS   153202006
+SUSAP KSMFK2FH35RZ APIECH 040PUGYIK2PC0E   L010RF       0022001679    07780035    + 02200                 CFBFX K2PCA FS   153212203
+SUSAP KSMFK2FH35RZ APIECH 050LERIYK2PC0E    010TF                                 + 02000                           A FS   153222006
+SUSAP KSMFK2FH35RZ APIECH 060JUNBOK2PC0EE  L010RF       0022200778    34780035    + 01100                 CFBFZ K2PCA FS   153232203
+SUSAP KSMFK2FH35RZ H      020JUNBOK2PC1E  F    IF                                 + 01100     18000       RW35R K2PGA FS   153242006
+SUSAP KSMFK2FH35RZ H      020JUNBOK2PC2W                                                A031A011                      FS   153252006
+SUSAP KSMFK2FH35RZ H      030RW35RK2PG0GY M 031TF                                   00086             -300          A FS   153262006
+SUSAP KSMFK2FH35RZ H      040ZUNEGK2PC0E M  010TF                                                                   A FS   153272006
+SUSAP KSMFK2FH35RZ H      050GRIMEK2EA0EY   010TF                                 + 02000                           A FS   153282006
+SUSAP KSMFK2FH35RZ H      060GRIMEK2EA0EE  R   HM                     33300040    + 02000                           A FS   153292006
+SUSAP KSMFK2GRW35R   0086053480 N38410065W121344964         -0023900022000064150R                                          154442006
+SUSAP KSMFK2SRW35RK2PG                0   18018004325                                                                  M   154572006
+SUSAP KSMFK2SSAC  K2D                 0   020110041251102900272529002003125                                            M   154581206
+SUSAUCK2AKSMF PAC  A00100     G N38401765W121304954                              GND  A04100MSACRAMENTO INTL AIRPORT       551541703
+SUSAUCK2AKSMF PAC  A00200     L N38445994W121303694N38414400W12135270000500492                                             551551703
+SUSAUCK2AKSMF PAC  A00300     R N38452984W121311474N38451500W12133470000200829                                             551561703
+SUSAUCK2AKSMF PAC  A00400     L N38464394W121352945N38414400W12135270000503596                                             551571703
+SUSAUCK2AKSMF PAC  A00500     REN38370676W121325844N38381800W12130550000202337                                             551581703
+SUSAUCK2AKSMF PAC  B00600     CE                   N38414400W1213527000100       01600M04100MSACRAMENTO INTL AIRPORT       551591703
