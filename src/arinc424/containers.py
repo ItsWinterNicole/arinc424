@@ -4,21 +4,38 @@ from collections import UserList
 # containers according to enum'd types.  But we don't use it currently.
 #from arinc424.decoder import Field
 
-# TODO self.barerec, self.recgroups, self.recseqs, clear and all the work
-# in parse() to build them, could probably all be done in
-# the containers sub-lib.  Just pass it a rec & let it 
-# build all the containers and give them back when we run out of
-# records.
 class Collection(UserList):
     def __init__(self, arg = None):
         self.data = []
         self.barerec = []
         self.recgroups = []
         self.recseqs = []
-        self.lastrecgroup = None
-        self.lastseqgroup = None
-        
+        if arg is not None:
+            self.extend(arg)
+
     def append(self, nr):
+        target = nr
+        if (isinstance(target, Record)):
+            self.barerec.append(target)
+        r = self._try_rg_add(target)
+        if (r[0] is True):
+            if (r[1] is not None):
+                target = r[1]
+            else:
+                # Nothing more to do.
+                return
+        if (isinstance(target, RecGroup)):
+            self.recgroups.append(target)
+        r = self._try_seq_add(target)
+        if (r[0] is True):
+            if (r[1] is not None):
+                target = r[1]
+            else:
+                # Nothing more to do.
+                return
+        if (isinstance(target, SeqGroup)):
+            self.recseqs.append(target)
+        self.data.append(target)
 
     def extend(self, iter):
         for i in iter:
@@ -29,81 +46,85 @@ class Collection(UserList):
         self.barerec.clear()
         self.recgroups.clear()
         self.recseqs.clear()
-        self.lastrecgroup = None
-        self.lastseqgroup = None
 
-# For organizational purposes we need to return some values so the
-# higher levels of code can pass a record & get back... something..
-# that will tell it what to do with that record:
-#   1. Keep it as a stand alone record.
-#   2. Drop it as part of an already seen record group or sequence.
-#   3. Drop it and pick up a new record, or new sequence it's been added to.
-# At the end this will give us one list with a set of records, record groups,
-# and sequences.  All of which will be similarly processed by whatever the
-# higher  code wants to do.
+    # For organizational purposes try_x_add needs to return some values so
+    # that append can pass a record & get back... something..
+    # that will tell it what to do with that record:
+    #   1. Keep it as a stand alone record.
+    #   2. Drop it as part of an already seen record group or sequence.
+    #   3. Drop it and pick up a new record, or new sequence it's been added to.
+    # At the end this will give us one list with a set of records, record groups,
+    # and sequences.  All of which will be similarly processed by whatever the
+    # collection holder wants to do.
 
-    def try_rg_add(self, r):
-        # try group add:
-        rnf = True
-        m = None
-        #print("Looking for rg")
-        for group in self.recgroups:
-            if group.validate(r):
-                #print("Found rg")
-                m = group
+    def _try_rg_add(self, r):
+        # If it's not groupable, no sense running the rest of the func.
+        if RecGroup.validate(r) is False:
+            return (False, None)
+        # Reverse the group in hope of some search optimization.
+        for group in reversed(self.recgroups):
+            try:
                 group.append(r)
-                rnf = False
                 r.rec_group = group
-                break
-        if rnf:
-            #print("Not found, trying new rg")
-            # Must be a new record group.
-            try:
-                new_rg = RecGroup()
-                new_rg.append(r)
-                self.recgroups.append(new_rg)
-                r.rec_group = new_rg
-                m = new_rg
-                #print("completd new rg!")
-            except:
-                #print("Failed new rg.. adding to regular records")
-                self.barerec.append(r)
-                m = r
-            # Now try adding to a seq, cuz it could still be
-            # a seq too...
-            #print ("trying seq add from rec_add")
-            try_seq_add(m)
-        #print('try_rg_add done')
+                return (True, None)
+            except ValueError:
+                # TODO ValueError is too generic. We should have a specific
+                # err that indicates r wasn't a match to the record group.
+                pass
+        # Must be a new record group.
+        new_rg = RecGroup()
+        new_rg.append(r)
+        r.rec_group = new_rg
+        return (True, new_rg)
 
-    def try_seq_add(self, r):
+    def _try_seq_add(self, r):
         # Try seq add:
-        snf = True
-        if isinstance(r, SeqType) is not True:
-            #print("Not a sequencable record")
-            return
-        #print("Looking for seq")
-        for seq in self.recseqs:
-            if seq.validate(r):
-                #print("Found seq")
-                seq.append(r)
-                snf = False
-                break
-        if snf:
-            #print("Not found, trying new seq")
+        if SeqGroup.validate(r) is False:
+            return (False, None)
+        # Reverse the group in hope of some search optimization.
+        for seq in reversed(self.recseqs):
+            #print(type(seq))
+            #print(type(r))
+            #print(isinstance(r, MultiRecord))
+            #print(isinstance(r, RecGroup))
             try:
-                #print("A")
-                new_sg = SeqGroup()
-                #print("B")
-                new_sg.append(r)
-                #print("C")
-                self.recseqs.append(new_sg)
-                #print("completd new seq!")
-            except Exception as e:
-                #print(f"{e}") # DEBUG
-                # It's not part of a seq, but it will already be part of
-                # either a group, or the solo list.  Nothing to do here.
-                print("Unexpected new seq fail.")
-        #print('try_seq_add done')
+                # TODO If seq contains an rg, we may need to try adding r
+                # to that, instead of adding r to the seq directly.
+                if (isinstance(seq[0], RecGroup)
+                    and RecGroup.validate(r)):
+                    #print(f"Trying add to a zrec group: {seq[0]}")
+                    seq[0].append(r)
+                else:
+                    #print(f"Trying plain add to {seq}")
+                    seq.append(r)
+                return (True, None)
+            except ValueError:
+                # TODO see ValueError exception in try_rg_add
+                #print ("Failed, passing.")
+                pass
+        new_sg = SeqGroup()
+        new_sg.append(r)
+        return (True, new_sg)
+
+    def debug(self):
+        for x in self:
+            if   (isinstance(x, Record)):
+                print(f"BR: {x.rec_no}")
+            elif (isinstance(x, RecGroup)):
+                print(f"RG:")
+                for y in x:
+                    print(f"    {y.rec_no}")
+            elif (isinstance(x, SeqGroup)):
+                print(f"Seq:")
+                for y in x:
+                    if (isinstance(y, RecGroup)):
+                        print("    RG:")
+                        for z in y:
+                            print(f"        {z.rec_no}")
+                    else:
+                        print(f"    {y.rec_no}")
+            else:
+                print(f"Big oops! {x}")
 
 def _getmatchval(x, *args):
     # Return a tuple that is easy to use later for comparison.
@@ -117,18 +138,24 @@ def _checkmatch(xmatch, y):
     if (xmatch == ymatch):
         return True
     return False
-    
+
 class RecGroup(UserList):
     def __init__(self, arg = None):
         self.data = []
         if (arg is not None):
             for rec in arg:
                 self.append(rec)
-        
-    def validate(self, nr):
-        # NR is the new rec to validate.
+
+    @staticmethod
+    def validate(nr):
         if ((isinstance(nr, MultiRecord) is False)
-            or (nr.cont_no == 0)
+            or (nr.cont_no == 0)):
+            return False
+        return True
+
+    def _validate(self, nr):
+        # NR is the new rec to validate.
+        if ((self.__class__.validate(nr) is False)
             or ((self.data != [])
                 and (_checkmatch(self.rec_matchstr, nr.line) is False))):
             return False
@@ -136,7 +163,7 @@ class RecGroup(UserList):
 
     def __setitem__(self, idx, nr):
         #print (f"s: {self.data}")
-        if self.validate(nr):
+        if self._validate(nr):
             if (self.data == []):
                 self.rec_matchstr = _getmatchval(nr.line, *nr.cont_cmprange)
                 #print(f"ms: {self.matchstr}")
@@ -166,7 +193,7 @@ class RecGroup(UserList):
         #print("a")
         if (isinstance(nr, MultiRecord)):
             self[nr.cont_no - 1] = nr
-   
+
     def read(self):
         rl = []
         for r in self.data:
@@ -178,50 +205,44 @@ class SeqGroup(UserList):
         self.data = []
         if (arg is not None):
             self.extend(arg)
-        
-    def validate(self, nr):
-        # First test: make sure the record type is right and if it's part of 
+
+    @staticmethod
+    def validate(nr):
+        # First test: make sure the record type is right and if it's part of
         # a group, that we have the full group, not a single rec out of that
         # group.
         if ((isinstance(nr, MultiRecord) and (nr.cont_no != 0))
-            or (isinstance(nr, RecGroup) 
+            or (isinstance(nr, RecGroup)
                 and ((nr == []) or (isinstance(nr[0], SeqType) is False)))
             or (isinstance(nr, Record) and (isinstance(nr, SeqType) is False))):
+            #print("va gonna return False")
             return False
-        # Second test: Confirm two things:
-        #   1) nr is a match for whatever other records we have in this seq..
-        #      ie. same sec/subsec, same route, boundary, Apch etc. 
-        #   2) nr is not a seq no that is already present in the list.
-        if ((self.data != [])
-            and ((_checkmatch(self.seq_matchstr, nr.line) is False)
-                 or (nr.seq_no in self.seq_nos))):
-            return False
+        #print("va gonna return True")
         return True
 
-    """ Maybe __setitem__ and insert shouldn't be implemented. 
-    def __setitem__(self, idx, nr):
-        # We'll ignore the index, cuz we want things ordered by seq no.
-        #print (f"s: {self.data}")
-        if self.validate(nr):
-            if (self.data == []):
-                self.seq_matchstr = _getmatchval(nr.line, *nr.seq_cmprange)
-            self.data.__setitem__(idx, nr)
-            self.data.sort(key=SeqType.get_seq_no)
-    """
-    
-    """ This isn't necessarily the best way either.
-    __setitem__ = None
-    insert = None
-    reverse = None
-    """
+    def _validate(self, nr):
+        # (First test see static method validate)
+        # Second test: Confirm two things:
+        #   1) nr is a match for whatever other records we have in this seq..
+        #      ie. same sec/subsec, same route, boundary, Apch etc.
+        #   2) nr is not a seq no that is already present in the list.
+        if ((self.__class__.validate(nr) is False)
+            or (self.data != []
+                and ((_checkmatch(self.seq_matchstr, nr.line) is False)
+                     or (nr.seq_no in self.seq_nos)))):
+            #print("_va gonna return False")
+            return False
+        #print("_va gonna return True")
+        return True
 
-    # I've seen this done...
+    # These shouldn't be implemented because we want to tightly control
+    # the order of records in a sequence group and these violate that.
     __setitem__ = property()
     insert = property()
     reverse = property()
 
     def append(self, item):
-        if self.validate(item):
+        if self._validate(item):
             if (self.data == []):
                 self.seq_matchstr = _getmatchval(item.line, *item.seq_cmprange)
             self.data.append(item)

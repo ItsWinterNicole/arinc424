@@ -1,11 +1,23 @@
 from collections import defaultdict
+from .ch5enums import StrTableWDefault, StrTable, GenericField, auto
+from .ch5enums import CardinalDir, IntentionalBlank, DeclnCardinal, FixedReal
+from pygeodesy.ellipsoidalExact import LatLon
 import string
 
+# TODO This is only returned temporarily.
+class Field():
+    def __init__(self, name, value, decode_fn):
+        self.name = name
+        self.value = value
+        self.decode_fn = decode_fn
+
+    def decode(self):
+        return self.decode_fn(self.value)
 
 class Field_5_002(StrTable):
-    S = ('S', 'Standard')
-    T = ('T', 'Tailored')
-
+    STANDARD = ('S', 'Standard')
+    TAILORED = ('T', 'Tailored')
+    HEADER = ('H', 'Header')
 
 # 5.3 Customer / Area Code
 class Field_5_003(StrTableWDefault):
@@ -27,7 +39,7 @@ class Field_5_004(StrTableWDefault):
     UNKNOWN =              (auto(), '<UNKNOWN>')
     GRID_MORA =            ('AS', 'Grid MORA')
     VHF_NAVAID =           ('D ', 'VHF Navaid')
-    NDP_NAVAID =           ('DB', 'NDB Navaid')
+    NDB_NAVAID =           ('DB', 'NDB Navaid')
     WAYPOINT =             ('EA', 'Waypoint')
     AIRWAYS_MARKER =       ('EM', 'Airways Marker')
     HOLDING_PATTERN =      ('EP', 'Holding Pattern')
@@ -39,7 +51,8 @@ class Field_5_004(StrTableWDefault):
     HELI_TRML_WPT =        ('HC', 'Heliport Terminal Waypoint')
     HELI_SID =             ('HD', 'Heliport SID')
     HELI_STAR =            ('HE', 'Heliport STAR')
-    HELI_TAA =             ('HF', 'Heliport TAA')
+    HELI_APCH_PROC =       ('HF', 'Heliport Approach Procedure')
+    HELI_TAA =             ('HK', 'Heliport TAA')
     HELI_MSA =             ('HS', 'Heliport MSA')
     HELI_COM =             ('HV', 'Heliport Communication')
     AP_REF_POINT =         ('PA', 'Airport Reference Point')
@@ -53,7 +66,7 @@ class Field_5_004(StrTableWDefault):
     AP_TAA =               ('PK', 'Airport TAA')
     AP_MLS =               ('PL', 'Airport MLS')
     AP_LLZ_MKR =           ('PM', 'Airport Localizer Marker')
-    AP_TRML =              ('PN', 'Airport Terminal')
+    AP_TRML_NAVAID =       ('PN', 'Airport Terminal Navaid')
     AP_PATH =              ('PP', 'Airport Path')
     AP_FLT_PLN_ARR_DEP =   ('PR', 'Airport Flt Planning ARR/DEP')
     AP_MSA =               ('PS', 'Airport MSA')
@@ -79,7 +92,7 @@ class Field_5_006(GenericField):
 #       if you ask me) but selection of the correct decoder can be done
 #       at the record level, saving all the decoders from needing access
 #       to the full record.
-class Field_007ER(StrTableWDefault):
+class Field_5_007ER(StrTableWDefault):
     # Enroute Airway Records (ER)
     UNKNOWN =        (auto(), 'Bad Value')
     AIRLINE_AWY =    ('A', 'Airline Airway (Tailored Data)')
@@ -91,7 +104,7 @@ class Field_007ER(StrTableWDefault):
     UNDESG_ATS_RTE = ('S', 'Undesignated ATS Route')
     TACAN_AWY =      ('T', 'TACAN Airway')
 
-class Field_007ET(StrTableWDefault):
+class Field_5_007ET(StrTableWDefault):
     # Preferred Route Records (ET)
     UNKNOWN =          (auto(), 'Bad Value')
     NA_RTES =          ('C', 'North American Routes for North Atlantic Traffic Common Portion')
@@ -104,7 +117,7 @@ class Field_007ET(StrTableWDefault):
     TFC_OR_SYS_RTES =  ('S', 'Traffic Orientation System Routes (TOS)')
     TWR_ENRT_CTRL_RTES = ('T', 'Tower Enroute Control Routes (TEC)')
 
-class Field_007_D(StrTableWDefault):
+class Field_5_007_D(StrTableWDefault):
     # Preferred & Helo Route Records (PD & HD)
     UNKNOWN =             (auto(), 'Bad Value')
     ENG_OUT_SID =         ('0', 'Engine Out SID')
@@ -120,7 +133,7 @@ class Field_007_D(StrTableWDefault):
     VCTR_SID_RWY_TRSN =   ('T', 'Vector SID Runway Transition')
     VCTR_SID_ENRT_TRSN =  ('V', 'Vector SID Enroute Transition')
 
-class Field_007_E(StrTableWDefault):
+class Field_5_007_E(StrTableWDefault):
     # Airport STAR (PE) and Heliport STAR (HE) Records
     UNKNOWN =             (auto(), 'Bad Value')
     STAR_ENRT_TRSN =      ('1', 'STAR Enroute Transition')
@@ -136,7 +149,7 @@ class Field_007_E(StrTableWDefault):
     FMS_STAR_COMN_RTE =   ('M', 'FMS STAR or STAR Common Route')
     FMS_STAR_RWY_TRSN =   ('S', 'FMS STAR Runway Transition')
 
-class Field_007_F(StrTableWDefault):
+class Field_5_007_F(StrTableWDefault):
     # Airport STAR (PF) and Heliport STAR (HF) Records
     UNKNOWN =        (auto(), 'Bad Value')
     APCH_TRSN =      ('A', 'Approach Transition')
@@ -164,9 +177,9 @@ class Field_007_F(StrTableWDefault):
 
 
 # 5.8 Route Identifier (ROUTE IDENT)
-Class Field_5_008(GenericField):
+class Field_5_008(GenericField):
     @classmethod
-    def validate(self, value):
+    def validate(cls, value):
         # TODO Might validate length based on route type.
         # ENRT = 5 max, Prefd = 10 max
         if value.strip().isalnum():
@@ -174,219 +187,237 @@ Class Field_5_008(GenericField):
         return False
 
 # 5.9 SID/STAR Route Identifier (SID/STAR IDENT)
-Class Field_5_009(Field_5_008):
+class Field_5_009(Field_5_008):
     # Same as 5.008 for now.
     # TODO Validation max = 6 char.
     pass
 
 # 5.10 Approach Route Identifier (APPROACH IDENT)
-Class Field_5_010(GenericField):
+class Field_5_010(GenericField):
     @classmethod
-    def validate(self, value):
-        
+    def validate(cls, value):
+        #TODO
+        return True
 
-    return f"Approach: {value[0]}, Runway: {value[1:4]}"
+    def __str__(self):
+        return f"Approach: {self.value[0]}, Runway: {self.value[1:4]}"
 
 
 # 5.11 Transition Identifier (TRANS IDENT)
-def field_011(value):
-    return value
-
+class Field_5_011(GenericField):
+    #TODO
+    pass
 
 # 5.12 Sequence Number (SEQ NR)
-def field_012(value):
-    match len(value.strip()):
-        case 1:
-            return f'MSA Table, TAA Table, Cruise Table - Sequence No. {value}'
-        case 2:
-            return f'VHF Navaid Limitation Continuation Records - Sequence No. {value}'
-        case 3:
-            return f'SID/STAR/Approach and Company Routes - Sequence No. {value}'
-        case 4:
-            return f'Enroute Airways, Preferred Routes, FIR/UIR, and Restrictive Airspace - Sequence No. {value}'
-        case _:
-            import sys
-            sys.exit()
+class Field_5_012(GenericField):
+    def __str__(self):
+        match len(self.value.strip()):
+            case 1:
+                return f'MSA Table, TAA Table, Cruise Table - Sequence No. {self.value}'
+            case 2:
+                return f'VHF Navaid Limitation Continuation Records - Sequence No. {self.value}'
+            case 3:
+                return f'SID/STAR/Approach and Company Routes - Sequence No. {self.value}'
+            case 4:
+                return f'Enroute Airways, Preferred Routes, FIR/UIR, and Restrictive Airspace - Sequence No. {self.value}'
+            case _:
+                return f'UNKNOWN SEQ NR {self.value}'
 
 
 # 5.13 Fix Identifier (FIX IDENT)
-def field_013(value):
-    return value
+class Field_5_013(GenericField):
+    #TODO
+    pass
 
 
 # 5.14 ICAO Code (ICAO CODE)
-def field_014(value):
-    return value
+class Field_5_014(GenericField):
+    #TODO
+    pass
 
 
 # 5.16 Continuation Record Number (CONT NR)
-def field_016(value):
-    match value:
-        case '0':
-            return 'Primary Record'
-        case '1':
-            return 'Primary Record (with Cont.)'
-        case _:
-            return str(value) + ' - Continuation'
+class Field_5_016(GenericField):
+    def __str__(self):
+        match self.value:
+            case '0':
+                return 'Primary Record'
+            case '1':
+                return 'Primary Record (with Cont.)'
+            case _:
+                return str(self.value) + ' - Continuation'
 
+    def __int__(self):
+        # If it's an 0-9, A-Z value, base 36 should
+        # cause it to convert perfectly to an int.
+        # if it's something else we'll run into problems tho.
+        return int(self.value, base = 36)
 
 # 5.17 Waypoint Description Code (DESC CODE)
-def field_017(value):
-    s = ""
-    match value[0]:  # column 40
-        case "A":
-            s += "Airport as Fix"
-        case "E":
-            s += "Essential Waypoint"
-        case "F":
-            s += "Off Airway Floating Waypoint"
-        case "G":
-            s += "Runway/Helipad as Fix"
-        case "H":
-            s += "Heliport as Waypoint"
-        case "N":
-            s += "NDB Navaid as Waypoint"
-        case "P":
-            s += "Phantom Waypoint"
-        case "R":
-            s += "Non-Essential Waypoint"
-        case "T":
-            s += "Transition Essential Waypoint"
-        case "V":
-            s += "VHF Navaid As Fix"
-        case _:
-            pass
+class Field_5_017(GenericField):
+    def __str__(self):
+        s = ""
+        match self.value[0]:  # column 40
+            case "A":
+                s += "Airport as Fix"
+            case "E":
+                s += "Essential Waypoint"
+            case "F":
+                s += "Off Airway Floating Waypoint"
+            case "G":
+                s += "Runway/Helipad as Fix"
+            case "H":
+                s += "Heliport as Waypoint"
+            case "N":
+                s += "NDB Navaid as Waypoint"
+            case "P":
+                s += "Phantom Waypoint"
+            case "R":
+                s += "Non-Essential Waypoint"
+            case "T":
+                s += "Transition Essential Waypoint"
+            case "V":
+                s += "VHF Navaid As Fix"
 
-    match value[1]:  # column 41
-        case "B":
-            s += "Flyover Waypoint, Ending Leg"
-        case "E":
-            s += "End of Continuous Segment"
-        case "U":
-            s += "Uncharted Airway Intersection"
-        case "Y":
-            s += "Fly-Over Waypoint"
+        match self.value[1]:  # column 41
+            case "B":
+                s += "Flyover Waypoint, Ending Leg"
+            case "E":
+                s += "End of Continuous Segment"
+            case "U":
+                s += "Uncharted Airway Intersection"
+            case "Y":
+                s += "Fly-Over Waypoint"
 
-    match value[2]:  # column 42
-        case "A":
-            s += "Unnamed Stepdown Fix Final Approach Segment"
-        case "B":
-            s += "Unnamed Stepdown Fix Intermediate Approach Segment"
-        case "C":
-            s += "ATC Compulsory Reporting Point"
-        case "G":
-            s += "Oceanic Gateway Waypoint"
-        case "M":
-            s += "First Leg of Missed Approach Procedure"
-        case "R":
-            s += "Fix used for turning final approach"
-        case "S":
-            s += "Named Stepdown Fix"
+        match self.value[2]:  # column 42
+            case "A":
+                s += "Unnamed Stepdown Fix Final Approach Segment"
+            case "B":
+                s += "Unnamed Stepdown Fix Intermediate Approach Segment"
+            case "C":
+                s += "ATC Compulsory Reporting Point"
+            case "G":
+                s += "Oceanic Gateway Waypoint"
+            case "M":
+                s += "First Leg of Missed Approach Procedure"
+            case "R":
+                s += "Fix used for turning final approach"
+            case "S":
+                s += "Named Stepdown Fix"
 
-    match value[3]:  # column 43
-        case "A":
-            s += "Initial Approach Fix"
-        case "B":
-            s += "Intermediate Approach Fix"
-        case "C":
-            s += "Holding at Initial Approach Fix"
-        case "D":
-            s += "Initial Approach Fix at FACF"
-        case "E":
-            s += "Final End Point"
-        case "F":
-            s += "Final Approach Fix"
-        case "G":
-            s += "Source provided Enroute Waypoint without Holding"
-        case "H":
-            s += "Source provided Enroute Waypoint with Holding"
-        case "I":
-            s += "Final Approach Course Fix"
-        case "M":
-            s += "Missed Approach Point"
-        case "N":
-            s += "Engine Out SID Missed Approach Disarm Point"
-        case "P":
-            s += "Initial Departure Fix"
-        case "Q":
-            s += "Quiet Climb SID Restore Point"
-        case _:
-            pass
-
-    return s
+        match self.value[3]:  # column 43
+            case "A":
+                s += "Initial Approach Fix"
+            case "B":
+                s += "Intermediate Approach Fix"
+            case "C":
+                s += "Holding at Initial Approach Fix"
+            case "D":
+                s += "Initial Approach Fix at FACF"
+            case "E":
+                s += "Final End Point"
+            case "F":
+                s += "Final Approach Fix"
+            case "G":
+                s += "Source provided Enroute Waypoint without Holding"
+            case "H":
+                s += "Source provided Enroute Waypoint with Holding"
+            case "I":
+                s += "Final Approach Course Fix"
+            case "M":
+                s += "Missed Approach Point"
+            case "N":
+                s += "Engine Out SID Missed Approach Disarm Point"
+            case "P":
+                s += "Initial Departure Fix"
+            case "Q":
+                s += "Quiet Climb SID Restore Point"
+        return s
 
 
 # 5.18 Boundary Code (BDY CODE)
-def field_018(value):
-    s = ""
-    match value[0]:  # column 42
-        case "U":
-            s += "USA"
-        case "C":
-            s += "Canada"
-        case "P":
-            s += "Pacific"
-        case "L":
-            s += "Latin America"
-        case "S":
-            s += "South America"
-        case "1":
-            s += "South Pacific"
-        case "E":
-            s += "Europe"
-        case "2":
-            s += "Eastern Europe"
-        case "M":
-            s += "Middle East, South Asia"
-        case "A":
-            s += "Africa"
-
-    return s
+class Field_5_018(GenericField):
+    def __str__(self):
+        s = ""
+        match self.value[0]:  # column 42
+            case "U":
+                s += "USA"
+            case "C":
+                s += "Canada"
+            case "P":
+                s += "Pacific"
+            case "L":
+                s += "Latin America"
+            case "S":
+                s += "South America"
+            case "1":
+                s += "South Pacific"
+            case "E":
+                s += "Europe"
+            case "2":
+                s += "Eastern Europe"
+            case "M":
+                s += "Middle East, South Asia"
+            case "A":
+                s += "Africa"
+        return s
 
 
 # 5.19 Level (LEVEL)
-def field_019(value):
-    return value
+class Field_5_019(GenericField):
+    #TODO
+    pass
 
 
 # 5.20 Turn Direction (TURN DIR)
-def field_020(value):
-    if value == 'R':
-        return 'Right'
-    elif value == 'L':
-        return 'Left'
-    # TODO check this
-    elif value == 'E' or value == ' ':
-        return 'Either'
-    else:
-        raise ValueError("Invalid Turn Direction:", value)
+class Field_5_020(GenericField):
+    #TODO
+    def __str__(self):
+        match self.value:
+            case 'R':
+                return 'Right'
+            case 'L':
+                return 'Left'
+            # TODO check this:
+            case 'E':
+                return 'Either'
+            case ' ':
+                return 'Either'
+            case _:
+                return 'INVALID'
 
 
 # 5.21 Path and Termination (PATH TERM)
-def field_021(value):
-    value = value.strip()
-    if len(value) > 0:
-        if value.isalpha() is False:
-            raise ValueError("Invalid Path and Termination:", value)
-    return value
+class Field_5_021(GenericField):
+    #TODO
+    def __str__(self):
+        value = self.value.strip()
+        if len(value) > 0:
+            if value.isalpha() is False:
+                return(f"Invalid Path and Termination: {value}")
+        return value
 
 
 # 5.22 Turn Direction Valid (TDV)
-def field_022(value):
-    value = value.strip()
-    if len(value) > 0:
-        if value.isalpha() is False:
-            raise ValueError("Invalid Turn Direction Valid (TDV):", value)
-    return value
+class Field_5_022(GenericField):
+    #TODO
+    def __str__(self):
+        value = self.value.strip()
+        if len(value) > 0:
+            if value.isalpha() is False:
+                return(f"Invalid Turn Direction Valid (TDV): {value}")
+        return value
 
 
 # 5.23 Recommended NAVAID (RECD NAV)
-def field_023(value):
-    value = value.strip()
-    if len(value) > 0:
-        if value.isalnum() is False or len(value) > 4:
-            raise ValueError("Invalid Recommended NAVAID (RECD NAV):", value)
-    return value
+class Field_5_023(GenericField):
+    #TODO
+    def __str__(self):
+        value = self.value.strip()
+        if len(value) > 0:
+            if value.isalnum() is False or len(value) > 4:
+                return(f"Invalid Recommended NAVAID (RECD NAV): {value}")
+        return value
 
 
 # 5.24 Theta (THETA)
@@ -419,13 +450,15 @@ def field_026(value):
 
 
 # 5.27 Route Distance From, Holding Distance/Time (RTE DIST FROM, HOLD DIST/TIME)
-def field_027(value):
-    return value
+class Field_5_027(GenericField):
+    #TODO
+    pass
 
 
 # 5.28 Inbound Magnetic Course (IB MAG CRS)
-def field_028(value):
-    return value
+class Field_5_028(GenericField):
+    #TODO
+    pass
 
 
 # 5.29 Altitude Description (ALT DESC)
@@ -439,8 +472,9 @@ def field_030(value):
 
 
 # 5.31 File Record Number (FRN)
-def field_031(value):
-    return value
+class Field_5_031(GenericField):
+    #TODO
+    pass
 
 
 # 5.32 Cycle Date (CYCLE)
@@ -450,8 +484,9 @@ def field_032(value):
 
 
 # 5.33 VOR/NDB Identifier (VOR IDENT/NDB IDENT)
-def field_033(value):
-    return value
+class Field_5_033(GenericField):
+    #TODO
+    pass
 
 
 # 5.34 VOR/NDB Frequency (VOR/NDB FREQ)
@@ -465,8 +500,12 @@ def field_034(value):
     return value
 
 
-# 5.35 NAVAID Class (CLASS)
-def field_035(value):
+# 5.35 NAVAID class (CLASS)
+class Field_5_035(GenericField):
+    #TODO
+    pass
+    # All the commented out bits below came that way in
+    # original code:
     # elif facility.contains(field):
     #     d = defaultdict(def_val)
     #     d['V'] = 'VOR'
@@ -497,37 +536,130 @@ def field_035(value):
     # elif colloc.contains(field):
     #     collocation[' '] = 'Collocated Navaids'
     #     collocation['N'] = 'Non-Collocated Navaids'
-    return value
 
 
-# 5.36 Latitude (LATITUDE)
-def field_036(value):
-    return value
+# 5.36 Latitude (LATITUDE) & 5.37 Longitude
+class Field_5_036_5_037(GenericField):
+    def __init__(self, text = None, latLon = None):
+        if ((text is None) and (latLon is None)):
+            raise ValueError("text or geodesy arg req'd")
+        if (text is None):
+            self.geodesy = latLon
+            return
+        self.lat_card = CardinalDir(text[0])
+        self.latitude = (int(text[1:3]) + (int(text[3:5]) / 60) \
+                         + (float(f"{text[5:7]}.{text[7:9]}") / 60**2)) \
+                         * self.lat_card.lat_mul
+        self.lon_card = CardinalDir(text[9])
+        self.longitude = (int(text[10:13]) + (int(text[13:15]) / 60) \
+                          + (float(f"{text[15:17]}.{text[17:19]}") / 60**2)) \
+                          * self.lon_card.lon_mul
 
+    def __str__(self):
+        return f"{abs(self.latitude)} {self.lat_card}, " \
+               f"{abs(self.longitude)} {self.lon_card}"
 
-# 5.37 Longitude (LONGITUDE)
-def field_037(value):
-    return value
+    @classmethod
+    def validate(cls, latlon):
+        if ((latlon[0] not in ['N', 'S', 'n', 's'])
+            or (latlon[9] not in ['E', 'W', 'e', 'w'])
+            or (latlon[1:9].isnumeric() is not True)
+            or (latlon[10:19].isnumeric() is not True)
+            or (int(latlon[1:9]) > 90000000)
+            or (int(latlon[3:9]) > 600000)
+            or (int(latlon[5:9]) > 6000)
+            or (int(latlon[10:19]) > 180000000)
+            or (int(latlon[13:19]) > 600000)
+            or (int(latlon[15:19]) > 6000)):
+            return False
+        return True
 
+    @property
+    def geodesy(self):
+        """The geodesy property."""
+        return LatLon(self.latitude,
+                      self.longitude)
+
+    def force_cards(self):
+        # We need to force the cardinals any time
+        # .latitude & .longitude are set from a source
+        # outside of the arinc line strings.
+        self.lat_card = CardinalDir("N")
+        if (self.latitude < 0):
+            self.lat_card = CardinalDir("S")
+        self.lon_card = CardinalDir("E")
+        if (self.longitude < 0):
+            self.lon_card = CardinalDir("W")
+
+    @geodesy.setter
+    def geodesy(self, value):
+        self.latitude = value.lat
+        self.longitude = value.lon
+        self.force_cards()
+
+    @property
+    def radians(self):
+        rlat = self.latitude * (pi/180)
+        rlon = self.longitude * (pi/180)
+        return (rlat, rlon)
+
+    @radians.setter
+    def radians(self, value):
+        self.latitude = value[0] * (180/pi)
+        self.longitude = value[1] * (180/pi)
+        self.force_cards()
 
 # 5.38 DME Identifier (DME IDENT)
-def field_038(value):
-    return value
-
+class Field_5_038(GenericField):
+    #TODO
+    pass
 
 # 5.39 Magnetic Variation (MAG VAR, D MAG VAR)
-def field_039(value):
-    return value if value.strip() == '' else "{:03} {}".format(int(value[1:]), value[0])
+class Field_5_039(FixedReal):
+    # CWWWF is the format with WWWF being digits, and F being the
+    # floating point portion of the number. C is the DeclnCardinal portion.
+    dplaces = 1
+    valpos = range(1,5)
 
+    def __init__(self, value):
+        if (value.strip() == ''):
+            self.value = 0
+            self.offset = DeclnCardinal.TRUE
+        else:
+            super().__init__(value) # Handle the numeric portion.
+            self.offset = DeclnCardinal(value[0])
+            self.value *= self.offset.multi
+
+    def __str__(self):
+        return f"{self.value:.1f} {self.offset}"
+
+    def cardinal(self):
+        return self.offset
+
+    @property
+    def radians(self):
+        return self.value * (pi/180)
+
+    @radians.setter
+    def radians(self, value):
+        if   (value < 0):
+            self.offset = DeclnCardinal.WEST
+        elif (value == 0):
+            self.offset = DeclnCardinal.TRUE
+        else:
+            self.offset = DeclnCardinal.EAST
+        self.value = value * (180/pi)
 
 # 5.40 DME Elevation (DME ELEV)
-def field_040(value):
-    return value
+class Field_5_040(GenericField):
+    #TODO
+    pass
 
 
 # 5.41 Region Code (REGN CODE)
-def field_041(value):
-    return value
+class Field_5_041(GenericField):
+    #TODO
+    pass
 
 
 # 5.42 Waypoint Type (TYPE)
@@ -587,13 +719,15 @@ def field_042(value):
 
 
 # 5.43 Waypoint Name/Description (NAME/DESC)
-def field_043(value):
-    return value.strip()
+class Field_5_043(GenericField):
+    #TODO
+    pass
 
 
 # 5.44 Localizer/MLS/GLS Identifier (LOC, MLS, GLS IDENT)
-def field_044(value):
-    return value
+class Field_5_044(GenericField):
+    #TODO
+    pass
 
 
 # 5.45 Localizer Frequency (FREQ)
@@ -605,38 +739,45 @@ def field_045(value):
 
 
 # 5.46 Runway Identifier (RUNWAY ID)
-def field_046(value):
-    return value
+class Field_5_046(GenericField):
+    #TODO
+    pass
 
 
 # 5.47 Localizer Bearing (LOC BRG)
-def field_047(value):
-    return value
+class Field_5_047(GenericField):
+    #TODO
+    pass
 
 
 # 5.48 Localizer Position (LOC FR RW END Azimuth/Back Azimuth Position (AZ/BAZ FR RWEND)
-def field_048(value):
-    return value
+class Field_5_048(GenericField):
+    #TODO
+    pass
 
 
 # 5.49 Localizer/Azimuth Position Reference (@, +, -)
-def field_049(value):
-    return value
+class Field_5_049(GenericField):
+    #TODO
+    pass
 
 
 # 5.50 Glide Slope Position (GS FR RW THRES) Elevation Position (EL FR RW THRES)
-def field_050(value):
-    return value
+class Field_5_050(GenericField):
+    #TODO
+    pass
 
 
 # 5.51 Localizer Width (LOC WIDTH)
-def field_051(value):
-    return value
+class Field_5_051(GenericField):
+    #TODO
+    pass
 
 
 # 5.52 Glide Slope Angle (GS ANGLE) Minimum Elevation Angle (MIN ELEV ANGLE)
-def field_052(value):
-    return value
+class Field_5_052(GenericField):
+    #TODO
+    pass
 
 
 # 5.53 Transition Altitude/Level (TRANS ALTITUDE/LEVEL)
@@ -653,56 +794,67 @@ def field_054(value):
 
 
 # 5.55 Airport/Heliport Elevation (ELEV)
-def field_055(value):
-    return value
+class Field_5_055(GenericField):
+    #TODO
+    pass
 
 
 # 5.56 Gate Identifier (GATE IDENT)
-def field_056(value):
-    return value
+class Field_5_056(GenericField):
+    #TODO
+    pass
 
 
 # 5.57 Runway Length (RUNWAY LENGTH)
-def field_057(value):
-    return value
+class Field_5_057(GenericField):
+    #TODO
+    pass
 
 
 # 5.58 Runway Magnetic Bearing (RWY BRG)
-def field_058(value):
-    return value
+class Field_5_058(GenericField):
+    #TODO
+    pass
 
 
 # 5.59 Runway Description (RUNWAY DESCRIPTION)
-def field_059(value):
-    return value
+class Field_5_059(GenericField):
+    #TODO
+    pass
 
 
 # 5.60 Name (NAME)
-def field_060(value):
-    return value
+class Field_5_060(GenericField):
+    #TODO
+    pass
 
 
 # 5.61 Notes (Continuation Records) (NOTES)
-def field_061(value):
-    return value
+class Field_5_061(GenericField):
+    #TODO
+    pass
 
 
 # 5.62 Inbound Holding Course (IB HOLD CRS)
-def field_062(value):
-    if (value.isnumeric()):
-        return float(value)/10
-    else:
-        return "BAD VALUE"
+class Field_5_062(GenericField):
+    #TODO
+    def __str__(self):
+        if (self.value.isnumeric()):
+            return float(self.value)/10
+        else:
+            return "BAD VALUE"
 
 
 # 5.63 Turn (TURN)
-def field_063(value):
-    return value
+class Field_5_063(GenericField):
+    #TODO
+    pass
 
 
 # 5.64 Leg Length (LEG LENGTH)
-def field_064(value):
-    return value
+class Field_5_064(GenericField):
+    #TODO
+    pass
 
 
 # 5.65 Leg Time (LEG TIME)
@@ -711,33 +863,40 @@ def field_065(value):
 
 
 # 5.66 Station Declination (STN DEC)
-def field_066(value):
-    return value
+class Field_5_066(Field_5_039):
+    # No real difference.  039 wouldnt accept a 'G' ordinal, but
+    # we let that slip in our decoder.
+    pass
 
 
 # 5.67 Threshold Crossing Height (TCH)
-def field_067(value):
-    return value
+class Field_5_067(GenericField):
+    #TODO
+    pass
 
 
 # 5.68 Landing Threshold Elevation (LANDING THRES ELEV)
-def field_068(value):
-    return value
+class Field_5_068(GenericField):
+    #TODO
+    pass
 
 
 # 5.69 Threshold Displacement Distance (DSPLCD THR)
-def field_069(value):
-    return value
+class Field_5_069(GenericField):
+    #TODO
+    pass
 
 
 # 5.70 Vertical Angle (VERT ANGLE)
-def field_070(value):
-    return value
+class Field_5_070(GenericField):
+    #TODO
+    pass
 
 
 # 5.71 Name Field
-def field_071(value):
-    return value
+class Field_5_071(GenericField):
+    #TODO
+    pass
 
 
 # 5.72 Speed Limit (SPEED LIMIT)
@@ -756,43 +915,51 @@ def field_073(value):
 
 
 # 5.74 Component Elevation (GS ELEV, EL ELEV, AZ ELEV, BAZ ELEV)
-def field_074(value):
-    return value
+class Field_5_074(GenericField):
+    #TODO
+    pass
 
 
 # 5.75 From/To - Airport/Fix
-def field_075(value):
-    return value
+class Field_5_075(GenericField):
+    #TODO
+    pass
 
 
 # 5.76 Company Route Ident
-def field_076(value):
-    return value
+class Field_5_076(GenericField):
+    #TODO
+    pass
 
 
 # 5.77 VIA Code
-def field_077(value):
-    return value
+class Field_5_077(GenericField):
+    #TODO
+    pass
 
 
 # 5.78 SID/STAR/App/AWY (S/S/A/AWY) SID/STAR/Awy (S/S/AWY)
-def field_078(value):
-    return value
+class Field_5_078(GenericField):
+    #TODO
+    pass
 
 
 # 5.79 Stopway
-def field_079(value):
-    return value
+class Field_5_079(GenericField):
+    #TODO
+    pass
 
 
 # 5.80 ILS/MLS/GLS Category (CAT)
-def field_080(value):
-    return value
+class Field_5_080(GenericField):
+    #TODO
+    pass
 
 
 # 5.81 ATC Indicator (ATC)
-def field_081(value):
-    return value
+class Field_5_081(GenericField):
+    #TODO
+    pass
 
 
 # 5.82 Waypoint Usage
@@ -814,18 +981,21 @@ def field_082(value):
 
 
 # 5.83 To FIX
-def field_083(value):
-    return value
+class Field_5_083(GenericField):
+    #TODO
+    pass
 
 
 # 5.84 RUNWAY TRANS
-def field_084(value):
-    return value
+class Field_5_084(GenericField):
+    #TODO
+    pass
 
 
 # 5.85 ENRT TRANS
-def field_085(value):
-    return value
+class Field_5_085(GenericField):
+    #TODO
+    pass
 
 
 # 5.86 Cruise Altitude
@@ -834,23 +1004,27 @@ def field_086(value):
 
 
 # 5.87 Terminal/Alternate Airport (TERM/ALT ARPT)
-def field_087(value):
-    return value
+class Field_5_087(GenericField):
+    #TODO
+    pass
 
 
 # 5.88 Alternate Distance (ALT DIST)
-def field_088(value):
-    return value
+class Field_5_088(GenericField):
+    #TODO
+    pass
 
 
 # 5.89 Cost Index
-def field_089(value):
-    return value
+class Field_5_089(GenericField):
+    #TODO
+    pass
 
 
 # 5.90 ILS/DME Bias
-def field_090(value):
-    return value
+class Field_5_090(GenericField):
+    #TODO
+    pass
 
 
 # 5.91 Continuation Record Application Type (APPL)
@@ -892,43 +1066,51 @@ def field_092(value):
 
 
 # 5.93 Facility Characteristics (FAC CHAR)
-def field_093(value):
-    return value
+class Field_5_093(GenericField):
+    #TODO
+    pass
 
 
 # 5.94 True Bearing (TRUE BRG)
-def field_094(value):
-    return value
+class Field_5_094(GenericField):
+    #TODO
+    pass
 
 
 # 5.95 Government Source (SOURCE)
-def field_095(value):
-    return value
+class Field_5_095(GenericField):
+    #TODO
+    pass
 
 
 # 5.96 Glide Slope Beam Width (GS BEAM WIDTH)
-def field_096(value):
-    return value
+class Field_5_096(GenericField):
+    #TODO
+    pass
 
 
 # 5.97 Touchdown Zone Elevation (TDZE)
-def field_097(value):
-    return value
+class Field_5_097(GenericField):
+    #TODO
+    pass
 
 
 # 5.98 ‘TDZE Location (LOCATION)
-def field_098(value):
-    return value
+class Field_5_098(GenericField):
+    #TODO
+    pass
 
 
 # 5.99 Marker Type (MKR TYPE)
-def field_099(value):
-    return value
+class Field_5_099(GenericField):
+    #TODO
+    pass
 
 
 # 5.100 Minor Axis Bearing (MINOR AXIS TRUE BRG)
-def field_100(value):
-    return value
+class Field_5_100(GenericField):
+    #TODO
+    pass
 
 
 # 5.101 Communications Type (COMM TYPE)
@@ -1009,8 +1191,9 @@ def field_104(value):
 
 
 # 5.105 Call Sign (CALL SIGN)
-def field_105(value):
-    return value
+class Field_5_105(GenericField):
+    #TODO
+    pass
 
 
 # 5.106 Service Indicator (SER IND)
@@ -1043,8 +1226,9 @@ def field_106(value):
 
 
 # 5.107 ATAMIATA Designator (ATA/IATA)
-def field_107(value):
-    return value
+class Field_5_107(GenericField):
+    #TODO
+    pass
 
 
 # 5.108 IFR Capability (IFR)
@@ -1059,18 +1243,21 @@ def field_108(value):
 
 
 # 5.109 Runway Width (WIDTH)
-def field_109(value):
-    return value
+class Field_5_109(GenericField):
+    #TODO
+    pass
 
 
 # 5.110 Marker Ident (MARKER IDENT)
-def field_110(value):
-    return value
+class Field_5_110(GenericField):
+    #TODO
+    pass
 
 
 # 5.111 Marker Code (MARKER CODE)
-def field_111(value):
-    return value
+class Field_5_111(GenericField):
+    #TODO
+    pass
 
 
 # 5.112 Marker Shape (SHAPE)
@@ -1096,18 +1283,21 @@ def field_113(value):
 
 
 # 5.114 Duplicate Identifier (DUP IND)
-def field_114(value):
-    return value
+class Field_5_114(GenericField):
+    #TODO
+    pass
 
 
 # 5.115 Direction Restriction
-def field_115(value):
-    return value
+class Field_5_115(GenericField):
+    #TODO
+    pass
 
 
 # 5.116 FIR/UIR Identifier (FIR/UIR IDENT)
-def field_116(value):
-    return value
+class Field_5_116(GenericField):
+    #TODO
+    pass
 
 
 # 5.117 FIR/UIR Indicator (IND)
@@ -1119,7 +1309,7 @@ def field_117(value):
     elif value == 'B':
         return 'Combined FIR/UIR'
     else:
-        print("UNKNOWN:", value)
+        print("FIR UNKNOWN:", value)
         # raise ValueError("Invalid FIR/UIR Indicator")
 
 
@@ -1138,7 +1328,7 @@ def field_118(value):
         case 'R':
             s += 'Clockwise ARC'
         case _:
-            print("UNKNOWN:", value)
+            print("BDRY VIA UNKNOWN:", value)
             raise ValueError("Invalid Boundary Via")
 
     if value[1] == 'E':
@@ -1148,23 +1338,27 @@ def field_118(value):
 
 
 # 5.119 Arc Distance (ARC DIST)
-def field_119(value):
-    return value
+class Field_5_119(GenericField):
+    #TODO
+    pass
 
 
 # 5.120 ‘Arc Bearing (ARC BRG)
-def field_120(value):
-    return value
+class Field_5_120(GenericField):
+    #TODO
+    pass
 
 
 # 5.121 Lower/Upper Limit
-def field_121(value):
-    return value
+class Field_5_121(GenericField):
+    #TODO
+    pass
 
 
 # 5.122 FIR/UIR ATC Reporting Units Speed (RUS)
-def field_122(value):
-    return value
+class Field_5_122(GenericField):
+    #TODO
+    pass
 
 
 # 5.123 FIR/UIR ATC Reporting Units Altitude (RUA)
@@ -1173,18 +1367,21 @@ def field_123(value):
 
 
 # 5.124 FIR/UIR Entry Report (ENTRY)
-def field_124(value):
-    return value
+class Field_5_124(GenericField):
+    #TODO
+    pass
 
 
 # 5.125 FIR/UIR Name
-def field_125(value):
-    return value
+class Field_5_125(GenericField):
+    #TODO
+    pass
 
 
 # 5.126 Restrictive Airspace Name
-def field_126(value):
-    return value
+class Field_5_126(GenericField):
+    #TODO
+    pass
 
 
 # 5.127 Maximum Altitude (MAX ALT)
@@ -1193,38 +1390,45 @@ def field_127(value):
 
 
 # 5.128 Restrictive Airspace Type (REST TYPE)
-def field_128(value):
-    return value
+class Field_5_128(GenericField):
+    #TODO
+    pass
 
 
 # 5.129 Restrictive Airspace Designation
-def field_129(value):
-    return value
+class Field_5_129(GenericField):
+    #TODO
+    pass
 
 
 # 5.130 Multiple Code (MULTI CD)
-def field_130(value):
-    return value
+class Field_5_130(GenericField):
+    #TODO
+    pass
 
 
 # 5.131 Time Code (TIME CD)
-def field_131(value):
-    return value
+class Field_5_131(GenericField):
+    #TODO
+    pass
 
 
 # 5.132 NOTAM
-def field_132(value):
-    return value
+class Field_5_132(GenericField):
+    #TODO
+    pass
 
 
 # 5.133 Unit Indicator (UNIT IND)
-def field_133(value):
-    return value
+class Field_5_133(GenericField):
+    #TODO
+    pass
 
 
 # 5.134 Cruise Table Identifier (CRSE TBL IDENT)
-def field_134(value):
-    return value
+class Field_5_134(GenericField):
+    #TODO
+    pass
 
 
 # 5.135 Course FROM/TO.
@@ -1236,58 +1440,81 @@ def field_135(value):
 
 
 # 5.136 Cruise Level From/To
-def field_136(value):
-    return value
+class Field_5_136(GenericField):
+    #TODO
+    pass
 
 
 # 5.137 Vertical Separation
-def field_137(value):
-    return value
+class Field_5_137(GenericField):
+    #TODO
+    pass
 
 
 # 5.138 Time Indicator (TIME IND)
-def field_138(value):
-    return value
+class Field_5_138(GenericField):
+    #TODO
+    pass
 
 
 # 5.139 Intentionally Left Blank
-def field_139(value):
-    return value
+class Field_5_139(GenericField):
+    #TODO
+    pass
 
 
 # 5.140 Controlling Agency
-def field_140(value):
-    return value
+class Field_5_140(GenericField):
+    #TODO
+    pass
 
 
 # 5.141 Starting Latitude
-def field_141(value):
-    return value
+class Field_5_141_5_142(Field_5_036_5_037):
+    def __init__(self, text = None, latLon = None):
+        if ((text is None) and (latLon is None)):
+            raise ValueError("text or geodest arg req'd")
+        if (text is None):
+            self.geodesy = latLon
+            return
+        self.lat_card = CardinalDir(text[0])
+        self.lon_card = CardinalDir(text[3])
+        self.latitude = int(text[1:3]) * self.lat_card.lat_mul
+        self.longitude = int(text[4:7]) * self.lon_card.lon_mul
 
-
-# 5.142 Starting Longitude
-def field_142(value):
-    return value
-
+    @classmethod
+    def validate(cls, latlon):
+        if ((latlon[0] not in ['N', 'S', 'n', 's'])
+            or (latlon[3] not in ['E', 'W', 'e', 'w'])
+            or (latlon[1:3].isnumeric() is not True)
+            or (latlon[4:7].isnumeric() is not True)
+            or (int(latlon[1:3]) > 90)
+            or (int(latlon[4:7]) > 180)):
+            return False
+        return True
 
 # 5.143 Grid MORA,
-def field_143(value):
-    return value
+class Field_5_143(GenericField):
+    #TODO
+    pass
 
 
 # 5.144 Center Fix (CENTER FIX)
-def field_144(value):
-    return value
+class Field_5_144(GenericField):
+    #TODO
+    pass
 
 
 # 5.145 Radius Li
-def field_145(value):
-    return value
+class Field_5_145(GenericField):
+    #TODO
+    pass
 
 
 # 5.146 Sector Bearing (SEC BRG)
-def field_146(value):
-    return value
+class Field_5_146(GenericField):
+    #TODO
+    pass
 
 
 # 5.147 Sector Altitude (SEC ALT)
@@ -1296,68 +1523,81 @@ def field_147(value):
 
 
 # 5.148 Enroute Alternate Airport (EAA)
-def field_148(value):
-    return value
+class Field_5_148(GenericField):
+    #TODO
+    pass
 
 
 # 5.149 Figure of Merit (MERIT)
-def field_149(value):
-    return value
+class Field_5_149(GenericField):
+    #TODO
+    pass
 
 
 # 5.150 Frequency Protection Distance (FREQ PRD)
-def field_150(value):
-    return value
+class Field_5_150(GenericField):
+    #TODO
+    pass
 
 
 # 5.151 FIR/UIR Address (ADDRESS)
-def field_151(value):
-    return value
+class Field_5_151(GenericField):
+    #TODO
+    pass
 
 
 # 5.152 Start/End Indicator (S/E IND)
-def field_152(value):
-    return value
+class Field_5_152(GenericField):
+    #TODO
+    pass
 
 
 # 5.153 Start/End Date
-def field_153(value):
-    return value
+class Field_5_153(GenericField):
+    #TODO
+    pass
 
 
 # 5.154 Restriction Identifier (REST IDENT)
-def field_154(value):
-    return value
+class Field_5_154(GenericField):
+    #TODO
+    pass
 
 
 # 5.155 Intentionally Left Blank
-def field_155(value):
-    return value
+class Field_5_155(GenericField):
+    #TODO
+    pass
 
 
 # 5.156 Intentionally Left Blank
-def field_156(value):
-    return value
+class Field_5_156(GenericField):
+    #TODO
+    pass
 
 
 # 5.157 Airway Restriction Start/End Date (START/END DATE)
-def field_157(value):
-    return value
+class Field_5_157(GenericField):
+    #TODO
+    pass
 
 
 # 5.158 Intentionally Left Blank
-def field_158(value):
-    return value
+class Field_5_158(GenericField):
+    #TODO
+    pass
 
 
 # 5.159 Intentionally Left Blank
-def field_159(value):
-    return value
+class Field_5_159(GenericField):
+    #TODO
+    pass
 
 
 # 5.160 Units of Altitude (UNIT IND)
-def field_160(value):
-    return value
+class Field_5_160(GenericField):
+    #TODO
+    pass
 
 
 # 5.161 Restriction Altitude (REST ALT)
@@ -1366,18 +1606,21 @@ def field_161(value):
 
 
 # 5.162 Step Climb Indicator (STEP)
-def field_162(value):
-    return value
+class Field_5_162(GenericField):
+    #TODO
+    pass
 
 
 # 5.163 Restriction Notes
-def field_163(value):
-    return value
+class Field_5_163(GenericField):
+    #TODO
+    pass
 
 
 # 5.164 EU Indicator (EU IND)
-def field_164(value):
-    return value
+class Field_5_164(GenericField):
+    #TODO
+    pass
 
 
 # 5.165 Magnetic/True Indicator (M/T IND)
@@ -1391,59 +1634,70 @@ def field_165(value):
 
 
 # 5.166 Channel
-def field_166(value):
-    return value
+class Field_5_166(GenericField):
+    #TODO
+    pass
 
 
 # 5.167 MLS Azimuth Bearing (MLS AZ BRG) MLS Back Azimuth Bearing (MLS BAZ BRG)
-def field_167(value):
-    return value
+class Field_5_167(GenericField):
+    #TODO
+    pass
 
 
 # 5.168 Azimuth Proportional Angle Right/Left (AZ PRO RIGHT/LEFT)
 # Back Azimuth Proportional Angle Right/Left (BAZ PRO RIGHT/LEFT)
-def field_168(value):
-    return value
+class Field_5_168(GenericField):
+    #TODO
+    pass
 
 
 # 5.169 Elevation Angle Span (EL ANGLE SPAN)
-def field_169(value):
-    return value
+class Field_5_169(GenericField):
+    #TODO
+    pass
 
 
 # 5.170 Decision Height (DH)
-def field_170(value):
-    return value
+class Field_5_170(GenericField):
+    #TODO
+    pass
 
 
 # 5.171 Minimum Descent Height (MDH)
-def field_171(value):
-    return value
+class Field_5_171(GenericField):
+    #TODO
+    pass
 
 
 # 5.172 Azimuth Coverage Sector Right/Left (AZ COV RIGHT/LEFT) Back Azimuth Coverage Sector Right/Left (BAZ COV RIGHT/LEFT)
-def field_172(value):
-    return value
+class Field_5_172(GenericField):
+    #TODO
+    pass
 
 
 # 5.173 Nominal Elevation Angle (NOM ELEV ANGLE)
-def field_173(value):
-    return value
+class Field_5_173(GenericField):
+    #TODO
+    pass
 
 
 # 5.174 Restrictive Airspace Link Continuation (LC)
-def field_174(value):
-    return value
+class Field_5_174(GenericField):
+    #TODO
+    pass
 
 
 # 5.175 Holding Speed (HOLD SPEED)
-def field_175(value):
-    return value
+class Field_5_175(GenericField):
+    #TODO
+    pass
 
 
 # 5.176 Pad Dimensions
-def field_176(value):
-    return value
+class Field_5_176(GenericField):
+    #TODO
+    pass
 
 
 # 5.177 Public/Military Indicator (PUB/MIL)
@@ -1466,7 +1720,7 @@ def field_178(value):
         y = 'GMT +' + str(x) if x >= 0 else 'GMT -' + str(x)
         return y + ':' + str(value[1:])
     else:
-        print("UNKNOWN:", value)
+        print("TZ UNKNOWN:", value)
 
 
 # 5.179 Daylight Time Indicator (DAY TIME)
@@ -1477,12 +1731,13 @@ def field_179(value):
         case 'N':
             return 'No'
         case _:
-            print("UNKNOWN:", value)
+            print("DTI UNKNOWN:", value)
 
 
 # 5.180 Pad Identifier (PAD IDENT)
-def field_180(value):
-    return value
+class Field_5_180(GenericField):
+    #TODO
+    pass
 
 
 # 5.181 H24 Indicator (H24)
@@ -1507,8 +1762,9 @@ def field_182(value):
 
 
 # 5.183 Sectorization (SECTOR)
-def field_183(value):
-    return value
+class Field_5_183(GenericField):
+    #TODO
+    pass
 
 
 # 5.184 Communication Altitude (COMM ALTITUDE)
@@ -1517,58 +1773,69 @@ def field_184(value):
 
 
 # 5.185 Sector Facility (SEC FAC)
-def field_185(value):
-    return value
+class Field_5_185(GenericField):
+    #TODO
+    pass
 
 
 # 5.186 Narrative
-def field_186(value):
-    return value
+class Field_5_186(GenericField):
+    #TODO
+    pass
 
 
 # 5.187 Distance Description (DIST DESC)
-def field_187(value):
-    return value
+class Field_5_187(GenericField):
+    #TODO
+    pass
 
 
 # 5.188 Communications Distance (COMM DIST)
-def field_188(value):
-    return value
+class Field_5_188(GenericField):
+    #TODO
+    pass
 
 
 # 5.189 Remote Site Name
-def field_189(value):
-    return value
+class Field_5_189(GenericField):
+    #TODO
+    pass
 
 
 # 5.190 FIR/RDO Identifier (FIR/RDO)
-def field_190(value):
-    return value
+class Field_5_190(GenericField):
+    #TODO
+    pass
 
 
 # 5.191 Triad Stations (TRIAD STA)
-def field_191(value):
-    return value
+class Field_5_191(GenericField):
+    #TODO
+    pass
 
 
 # 5.192 Group Repetition Interval (GRI)
-def field_192(value):
-    return value
+class Field_5_192(GenericField):
+    #TODO
+    pass
 
 
 # 5.193 Additional Secondary Phase Factor (ASF)
-def field_193(value):
-    return value
+class Field_5_193(GenericField):
+    #TODO
+    pass
 
 
 # 5.194 Initial/Terminus Airport/Fix
-def field_194(value):
-    return value
+class Field_5_194(GenericField):
+    #TODO
+    pass
 
 
 # 5.195 Time of Operation
-def field_195(value):
-    return value
+class Field_5_195(GenericField):
+    #TODO
+    pass
 
 
 # 5.196 Name Format Indicator (NAME IND)
@@ -1612,8 +1879,9 @@ def field_196(value):
 
 
 # 5.197 Datum Code (DATUM)
-def field_197(value):
-    return value
+class Field_5_197(GenericField):
+    #TODO
+    pass
 
 
 # 5.198 Modulation (MODULN)
@@ -1640,48 +1908,57 @@ def field_199(value):
 
 
 # 5.200 Remote Facility (REM FAC)
-def field_200(value):
-    return value
+class Field_5_200(GenericField):
+    #TODO
+    pass
 
 
 # 5.201 Restriction Record Type (REST TYPE)
-def field_201(value):
-    return value
+class Field_5_201(GenericField):
+    #TODO
+    pass
 
 
 # 5.202 Exclusion Indicator (EXC IND)
-def field_202(value):
-    return value
+class Field_5_202(GenericField):
+    #TODO
+    pass
 
 
 # 5.203 Block Indicator (BLOCK IND)
-def field_203(value):
-    return value
+class Field_5_203(GenericField):
+    #TODO
+    pass
 
 
 # 5.204 ARC Radius (ARC RAD)
-def field_204(value):
-    return value
+class Field_5_204(GenericField):
+    #TODO
+    pass
 
 
 # 5.205 Navaid Limitation Code (NLC)
-def field_205(value):
-    return value
+class Field_5_205(GenericField):
+    #TODO
+    pass
 
 
 # 5.206 Component Affected Indicator (COMP AFFTD IND)
-def field_206(value):
-    return value
+class Field_5_206(GenericField):
+    #TODO
+    pass
 
 
 # 5.207 Sector From/Sector To (SECTR)
-def field_207(value):
-    return value
+class Field_5_207(GenericField):
+    #TODO
+    pass
 
 
 # 5.208 Distance Limitation (DIST LIMIT)
-def field_208(value):
-    return value
+class Field_5_208(GenericField):
+    #TODO
+    pass
 
 
 # 5.209 Altitude Limitation (ALT LIMIT)
@@ -1690,153 +1967,183 @@ def field_209(value):
 
 
 # 5.210 Sequence End Indicator (SEQ END)
-def field_210(value):
-    return value
+class Field_5_210(GenericField):
+    #TODO
+    pass
 
 
 # 5.211 Required Navigation Performance (RNP)
-def field_211(value):
-    return value
+class Field_5_211(GenericField):
+    #TODO
+    pass
 
 
 # 5.212 Runway Gradient (RWY GRAD)
-def field_212(value):
-    return value
+class Field_5_212(GenericField):
+    #TODO
+    pass
 
 
 # 5.213 Controlled Airspace Type (ARSP TYPE)
-def field_213(value):
-    return value
+class Field_5_213(GenericField):
+    #TODO
+    pass
 
 
 # 5.214 Controlled Airspace Center (ARSP CNTR)
-def field_214(value):
-    return value
+class Field_5_214(GenericField):
+    #TODO
+    pass
 
 
 # 5.215 Controlled Airspace Classification (ARSP CLASS)
-def field_215(value):
-    return value
+class Field_5_215(GenericField):
+    #TODO
+    pass
 
 
 # 5.216 Controlled Airspace Name (ARSP NAME)
-def field_216(value):
-    return value
+class Field_5_216(GenericField):
+    #TODO
+    pass
 
 
 # 5.217 Controlled Airspace Indicator (CTLD ARSP IND)
-def field_217(value):
-    return value
+class Field_5_217(GenericField):
+    #TODO
+    pass
 
 
 # 5.218 Geographical Reference Table Identifier (GEO REF TBL ID)
-def field_218(value):
-    return value
+class Field_5_218(GenericField):
+    #TODO
+    pass
 
 
 # 5.219 Geographical Entity (GEO ENT)
-def field_219(value):
-    return value
+class Field_5_219(GenericField):
+    #TODO
+    pass
 
 
 # 5.220 Preferred Route Use Indicator (ET IND)
-def field_220(value):
-    return value
+class Field_5_220(GenericField):
+    #TODO
+    pass
 
 
 # 5.221 Aircraft Use Group (ACFT USE GP)
-def field_221(value):
-    return value
+class Field_5_221(GenericField):
+    #TODO
+    pass
 
 
 # 5.222 GNSS/FMS Indicator (GNSS/FMS IND)
-def field_222(value):
-    return value
+class Field_5_222(GenericField):
+    #TODO
+    pass
 
 
 # 5.223 Operations Type (OPS TYPE)
-def field_223(value):
-    return value
+class Field_5_223(GenericField):
+    #TODO
+    pass
 
 
 # 5.224 Route Indicator (RTE IND)
-def field_224(value):
-    return value
+class Field_5_224(GenericField):
+    #TODO
+    pass
 
 
 # 5.225 Ellipsoidal Height
-def field_225(value):
-    return value
+class Field_5_225(GenericField):
+    #TODO
+    pass
 
 
 # 5.226 Glide Path Angle (GPA)
-def field_226(value):
-    return value
+class Field_5_226(GenericField):
+    #TODO
+    pass
 
 
 # 5.227 Orthometric Height (ORTH HGT)
-def field_227(value):
-    return value
+class Field_5_227(GenericField):
+    #TODO
+    pass
 
 
 # 5.228 Course Width at Threshold (CRSWDTH)
-def field_228(value):
-    return value
+class Field_5_228(GenericField):
+    #TODO
+    pass
 
 
 # 5.229 Final Approach Segment DATA CRC Remainder (FAS CRC)
-def field_229(value):
-    return value
+class Field_5_229(GenericField):
+    #TODO
+    pass
 
 
 # 5.230 Procedure Type (PROC TYPE)
-def field_230(value):
-    return value
+class Field_5_230(GenericField):
+    #TODO
+    pass
 
 
 # 5.231 Along Track Distance (ATD)
-def field_231(value):
-    return value
+class Field_5_231(GenericField):
+    #TODO
+    pass
 
 
 # 5.232 Number of Engines Restriction (NOE)
-def field_232(value):
-    return value
+class Field_5_232(GenericField):
+    #TODO
+    pass
 
 
 # 5.233 Turboprop/Jet Indicator (TURBO)
-def field_233(value):
-    return value
+class Field_5_233(GenericField):
+    #TODO
+    pass
 
 
 # 5.234 RNAV Flag (RNAV)
-def field_234(value):
-    return value
+class Field_5_234(GenericField):
+    #TODO
+    pass
 
 
 # 5.235 ATC Weight Category (ATC WC)
-def field_235(value):
-    return value
+class Field_5_235(GenericField):
+    #TODO
+    pass
 
 
 # 5.236 ATC Identifier (ATC ID)
-def field_236(value):
-    return value
+class Field_5_236(GenericField):
+    #TODO
+    pass
 
 
 # 5.237 Procedure Description (PROC DESC)
-def field_237(value):
-    return value
+class Field_5_237(GenericField):
+    #TODO
+    pass
 
 
 # 5.238 Leg Type Code (LTC)
-def field_238(value):
-    return value
+class Field_5_238(GenericField):
+    #TODO
+    pass
 
 
 # 5.239 Reporting Code (RPT)
-def field_239(value):
-    return value
+class Field_5_239(GenericField):
+    #TODO
+    pass
 
 
 # 5.240 Altitude (ALT)
@@ -1845,143 +2152,192 @@ def field_240(value):
 
 
 # 5.241 Fix Related Transition Code (FRT Code)
-def field_241(value):
-    return value
+class Field_5_241(GenericField):
+    #TODO
+    pass
 
 
 # 5.242 Procedure Category (PRO CAT)
-def field_242(value):
-    return value
+class Field_5_242(GenericField):
+    #TODO
+    pass
 
 
 # 5.243 GLS Station Identifier
-def field_243(value):
-    return value
+class Field_5_243(GenericField):
+    #TODO
+    pass
 
 
 # 5.244 GLS Channel
-def field_244(value):
-    return value
+class Field_5_244(GenericField):
+    #TODO
+    pass
 
 
 # 5.245 Service Volume Radius
-def field_245(value):
-    return value
+class Field_5_245(GenericField):
+    #TODO
+    pass
 
 
 # 5.246 TDMA Slots
-def field_246(value):
-    return value
+class Field_5_246(GenericField):
+    #TODO
+    pass
 
 
 # 5.247 Station Type
-def field_247(value):
-    return value
+class Field_5_247(GenericField):
+    #TODO
+    pass
 
 
 # 5.248 Station Elevation WGS84
-def field_248(value):
-    return value
+class Field_5_248(GenericField):
+    #TODO
+    pass
 
 
 # 5.249 Longest Runway Surface Code (LRSC)
-def field_249(value):
-    return value
+class Field_5_249(GenericField):
+    #TODO
+    pass
 
 
 # 5.250 Alternate Record Type (ART)
-def field_250(value):
-    return value
+class Field_5_250(GenericField):
+    #TODO
+    pass
 
 
 # 5.251 Distance To Alternate (DTA)
-def field_251(value):
-    return value
+class Field_5_251(GenericField):
+    #TODO
+    pass
 
 
 # 5.252 Alternate Type (ALT TYPE)
-def field_252(value):
-    return value
+class Field_5_252(GenericField):
+    #TODO
+    pass
 
 
 # 5.253 Primary and Additional Alternate Identifier (ALT IDENT)
-def field_253(value):
-    return value
+class Field_5_253(GenericField):
+    #TODO
+    pass
 
 
 # 5.254 Fixed Radius Transition Indicator (FIXED RAD IND)
-def field_254(value):
-    return value
+class Field_5_254(GenericField):
+    #TODO
+    pass
 
 
 # 5.255 SBAS Service Provider Identifier (SBAS ID)
-def field_255(value):
-    return value
+class Field_5_255(GenericField):
+    #TODO
+    pass
 
 
 # 5.256 Reference Path Data Selector (REF PDS)
-def field_256(value):
-    return value
+class Field_5_256(GenericField):
+    #TODO
+    pass
 
 
 # 5.257 Reference Path Identifier (REF ID)
-def field_257(value):
-    return value
+class Field_5_257(GenericField):
+    #TODO
+    pass
 
 
 # 5.258 Approach Performance Designator (APD)
-def field_258(value):
-    return value
+class Field_5_258(GenericField):
+    #TODO
+    pass
 
 
 # 5.259 Length Offset (OFFSET)
-def field_259(value):
-    return value
+class Field_5_259(GenericField):
+    #TODO
+    pass
 
 
 # 5.260 Terminal Procedure Flight Planning Leg Distance (LEG DIST)
-def field_260(value):
-    return value
+class Field_5_260(GenericField):
+    #TODO
+    pass
 
 
 # 5.261 Speed Limit Description (SLD)
-def field_261(value):
-    return value
+class Field_5_261(GenericField):
+    #TODO
+    pass
 
 
 # 5.262 Approach Type Identifier (ATI)
-def field_262(value):
-    return value
+class Field_5_262(GenericField):
+    #TODO
+    pass
 
 
 # 5.263 HAL
-def field_263(value):
-    return value
+class Field_5_263(GenericField):
+    #TODO
+    pass
 
 
 # 5.264 VAL
-def field_264(value):
-    return value
+class Field_5_264(GenericField):
+    #TODO
+    pass
 
 
 # 5.265 Path Point TCH
-def field_265(value):
-    return value
+class Field_5_265(GenericField):
+    #TODO
+    pass
 
 
 # 5.266 TCH Units Indicator
-def field_266(value):
-    return value
+class Field_5_266(GenericField):
+    #TODO
+    pass
 
 
-# 5.267 High Precision Latitude (HPLAT)
-def field_267(value):
-    return value
+# 5.267 & 8 High Precision Latitude & Lon (HPLAT)
+class Field_5_267_5_268(Field_5_036_5_037):
+    def __init__(self, text = None, latLon = None):
+        if ((text is None) and (latLon is None)):
+            raise ValueError("text or geodest arg req'd")
+        if (text is None):
+            self.geodesy = latLon
+            return
+        self.lat_card = CardinalDir(text[0])
+        self.lon_card = CardinalDir(text[11])
+        self.latitude = (int(text[1:3]) + (int(text[3:5]) / 60) \
+                         + (float(f"{text[5:7]}.{text[7:11]}") / 60**2)) \
+                         * self.lat_card.lat_mul
+        self.longitude = (int(text[12:15]) + (int(text[15:17]) / 60) \
+                          + (float(f"{text[17:19]}.{text[19:23]}") / 60**2)) \
+                          * self.lon_card.lon_mul
 
-
-# 5.268 High Precision Longitude (HPLONG)
-def field_268(value):
-    return value
+    @classmethod
+    def validate(cls, latlon):
+        if ((latlon[0] not in ['N', 'S', 'n', 's'])
+            or (latlon[11] not in ['E', 'W', 'e', 'w'])
+            or (latlon[1:11].isnumeric() is not True)
+            or (latlon[12:23].isnumeric() is not True)
+            or (int(latlon[1:11]) > 9000000000)
+            or (int(latlon[3:11]) > 60000000)
+            or (int(latlon[5:11]) > 600000)
+            or (int(latlon[12:23]) > 18000000000)
+            or (int(latlon[15:23]) > 60000000)
+            or (int(latlon[17:23]) > 600000)):
+            return False
+        return True
 
 
 # 5.269 Helicopter Procedure Course (HPC)
@@ -2012,37 +2368,44 @@ def field_270(value):
 
 
 # 5.271 Procedure Turn (PROC TURN)
-def field_271(value):
-    return value
+class Field_5_271(GenericField):
+    #TODO
+    pass
 
 
 # 5.272 TAA Sector Identifier
-def field_272(value):
-    return value
+class Field_5_272(GenericField):
+    #TODO
+    pass
 
 
 # 5.273 TAA IAF Waypoint
-def field_273(value):
-    return value
+class Field_5_273(GenericField):
+    #TODO
+    pass
 
 
 # 5.274 TAA Sector Radius
-def field_274(value):
-    return value
+class Field_5_274(GenericField):
+    #TODO
+    pass
 
 
 # 5.275 Level of Service Name (LSN)
-def field_275(value):
-    return value
+class Field_5_275(GenericField):
+    #TODO
+    pass
 
 
 # 5.276 ??
-def field_276(value):
-    return value
+class Field_5_276(GenericField):
+    #TODO
+    pass
 
 
 # 5.320 SBAS Final Approach Course
-def field_320(value):
-    return value
+class Field_5_320(GenericField):
+    #TODO
+    pass
 
 
