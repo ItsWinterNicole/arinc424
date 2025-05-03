@@ -57,8 +57,9 @@ def read_file(path):
         pass
     print (f"Allrecs has {len(allrecs)} items")
     print (f"Found {len(allrecs.barerec)} solo records,")
-    print (f"{len(allrecs.recgroups)} record groups, and")
-    print (f"{len(allrecs.recseqs)} sequences.")
+    print (f"{len(allrecs.recgroups)} record groups,")
+    print (f"{len(allrecs.boundaryrecseqs)} boundary seqs and")
+    print (f"{len(allrecs.recseqs)} other sequences.")
     return allrecs
 
 def read_folder(path):

@@ -1,5 +1,9 @@
-from .record import Record, MultiRecord, SeqType
+from .record import Record, MultiRecord, SeqType, BoundaryDefPtSeqType
+from .decoder import Field_5_118
 from collections import UserList
+import math
+
+nmi2mtr = 1852
 # TODO Might want this later for searching & returning items from
 # containers according to enum'd types.  But we don't use it currently.
 #from arinc424.decoder import Field
@@ -10,10 +14,12 @@ class Collection(UserList):
         self.barerec = []
         self.recgroups = []
         self.recseqs = []
+        self.boundaryrecseqs = []
         if arg is not None:
             self.extend(arg)
 
     def append(self, nr):
+        # print(f"append starts with a {type(nr)}")
         target = nr
         if (isinstance(target, Record)):
             self.barerec.append(target)
@@ -26,14 +32,29 @@ class Collection(UserList):
                 return
         if (isinstance(target, RecGroup)):
             self.recgroups.append(target)
-        r = self._try_seq_add(target)
+        # print(f"After recgroup add it's a {type(target)}")
+        r = self._try_boundaryseq_add(target)
         if (r[0] is True):
+            # print(f"Got added as a boundary seq")
             if (r[1] is not None):
                 target = r[1]
             else:
-                # Nothing more to do.
                 return
-        if (isinstance(target, SeqGroup)):
+        else:
+            # print(f"Missed the boundary seq add, trying a"
+            #       f"plain seq")
+            r = self._try_seq_add(target)
+            if (r[0] is True):
+                # print(f"got added as a plain seq")
+                if (r[1] is not None):
+                    target = r[1]
+                else:
+                    # Nothing more to do.
+                    return
+        # print(f"After trying adds, it's a {type(target)}")
+        if (isinstance(target, BoundaryDefSeqGroup)):
+            self.boundaryrecseqs.append(target)
+        elif (isinstance(target, SeqGroup)):
             self.recseqs.append(target)
         self.data.append(target)
 
@@ -46,6 +67,7 @@ class Collection(UserList):
         self.barerec.clear()
         self.recgroups.clear()
         self.recseqs.clear()
+        self.boundaryrecseqs.clear()
 
     # For organizational purposes try_x_add needs to return some values so
     # that append can pass a record & get back... something..
@@ -58,6 +80,7 @@ class Collection(UserList):
     # collection holder wants to do.
 
     def _try_rg_add(self, r):
+        # print("_try_rg_add")
         # If it's not groupable, no sense running the rest of the func.
         if RecGroup.validate(r) is False:
             return (False, None)
@@ -79,6 +102,7 @@ class Collection(UserList):
 
     def _try_seq_add(self, r):
         # Try seq add:
+        # print ("_try_seq_add")
         if SeqGroup.validate(r) is False:
             return (False, None)
         # Reverse the group in hope of some search optimization.
@@ -88,8 +112,6 @@ class Collection(UserList):
             #print(isinstance(r, MultiRecord))
             #print(isinstance(r, RecGroup))
             try:
-                # TODO If seq contains an rg, we may need to try adding r
-                # to that, instead of adding r to the seq directly.
                 if (isinstance(seq[0], RecGroup)
                     and RecGroup.validate(r)):
                     #print(f"Trying add to a zrec group: {seq[0]}")
@@ -105,6 +127,36 @@ class Collection(UserList):
         new_sg = SeqGroup()
         new_sg.append(r)
         return (True, new_sg)
+
+    def _try_boundaryseq_add(self, r):
+        # print("_try_boundaryseq_add")
+        # Try seq add:
+        if BoundaryDefSeqGroup.validate(r) is False:
+            # print("We think the BDSG.validate failed")
+            return (False, None)
+        # Reverse the group in hope of some search optimization.
+        for seq in reversed(self.boundaryrecseqs):
+            # print(type(seq))
+            # print(type(r))
+            # print(isinstance(r, MultiRecord))
+            # print(isinstance(r, RecGroup))
+            try:
+                if (isinstance(seq[0], RecGroup)
+                    and RecGroup.validate(r)):
+                    # print(f"Trying add to a zrec group: {seq[0]}")
+                    seq[0].append(r)
+                else:
+                    # print(f"Trying plain add to {seq}")
+                    seq.append(r)
+                return (True, None)
+            except ValueError:
+                # TODO see ValueError exception in try_rg_add
+                # print ("Failed, passing.")
+                pass
+        new_sg = BoundaryDefSeqGroup()
+        new_sg.append(r)
+        return (True, new_sg)
+
 
     def debug(self):
         for x in self:
@@ -265,3 +317,131 @@ class SeqGroup(UserList):
     # TODO Think about doing this:
     # def __getitem__(self, idx):
 
+# TODO Code to do this interpolation.
+def rhumb_interpolate(r, distance, endpt):
+    """ Interpolates the rhumb line defined by r from point
+        r.point_geodesy to endpt.point_geodesy with distance
+        being the maximum dist in nmi between interpolated points.
+
+        Returns a list of points with type LatLon
+        r and endpt are records of type BoundaryDefPtSeqType.
+        distance is a float in nmi.
+        """
+    # We'll need azimuth & distance.
+    pg0 = r.point_geodesy
+    pg1 = endpt.point_geodesy
+    rhumb_azimuth = pg0.rhumbAzimuthTo(pg1)
+    rhumb_distance = pg0.rhumbDistanceTo(pg1)
+    # Now use distance to work out an even distance between
+    # interpolated points
+    interp_points = math.ceil(rhumb_distance/(distance * nmi2mtr))
+    true_dist = rhumb_distance/interp_points
+    # Finally, interpolate the points.
+    resultlist = []
+    for n in range(interp_points):
+        resultlist.append(pg0.rhumbDestination(true_dist * n, rhumb_azimuth))
+    return resultlist
+
+def arc_interpolate(r, distance, endpt):
+    """ Interpolates the arc defined by r from point r.point_geodesy to
+        the point endpt.point_geodesy with distance being the maximum degrees
+        between interpolated points.
+
+        Returns a list of points with type LatLon.
+        r and endpt are records of type BoundaryDefPtSeqType.
+        distance is a float in degrees."""
+    if ((r.bound_via == Field_5_118.CCWARC) or
+        (r.bound_via == Field_5_118.CCWARC_RET)):
+        direction = -1
+    else:
+        direction = 1
+    # Bering to the startpoint is r.arc_bering.
+    # Need to find bering to the endpoint.
+    if (r is not endpt):
+        # if r and endpt are not the same, we need to identify end_bering, and
+        # calc a true_dist that gives us evenly spaced points no farther apart
+        # than distance (in degrees).
+        start_bering = r.arc_bering
+        temp = r.arc_focus_geodesy.distanceTo2(endpt.point_geodesy)
+        end_bering = temp[1]
+        bering_range = end_bering - start_bering
+    else:
+        # if r and endpt are the same, we have the special case of a circle.
+        # Start bering can be 0, end bering & bering_range 360, and we can
+        # calculate true_dist off of that.
+        start_bering = 0
+        end_bering = 360
+        bering_range = 360
+    interp_points = math.ceil((bering_range * direction)/distance)
+    true_dist = bering_range/interp_points
+    rvlist = []
+    for n in range(interp_points):
+        res_pt = r.arc_focus_geodesy.destination(
+            r.arc_radius * nmi2mtr, (start_bering + (n * true_dist)))
+        rvlist.append(res_pt)
+    #print (f"Arc complete.")
+    return rvlist
+
+class BoundaryDefSeqGroup(SeqGroup):
+    rhumb_interp_distance = .1  # nmi
+    arc_interp_distance = 5     # degrees
+
+    @staticmethod
+    def validate(nr):
+        #print("bdsg validate:")
+        #print(SeqGroup.validate(nr))
+        #print(isinstance(nr, RecGroup))
+        #if (isinstance(nr, RecGroup)):
+        #    print(isinstance(nr[0], BoundaryDefPtSeqType))
+        #print(isinstance(nr, BoundaryDefPtSeqType))
+        if ((SeqGroup.validate(nr) is False) or
+            ((isinstance(nr, BoundaryDefPtSeqType) is False) and
+             (isinstance(nr, RecGroup) is True) and
+             (isinstance(nr[0], BoundaryDefPtSeqType) is False))):
+            return False
+        return True
+
+    @property
+    def boundary_point_geodesy_list(self):
+        pointlist = []
+        for n in range(len(self.data)):
+            if (isinstance(self.data[n], RecGroup) is True):
+                pointrec = self.data[n][0]
+            else:
+                pointrec = self.data[n]
+            # likely we'll need the next rec too.
+            n_plus_one = (n + 1) % len(self.data)
+            if (isinstance(self.data[n_plus_one], RecGroup) is True):
+                nextpointrec = self.data[n_plus_one][0]
+            else:
+                nextpointrec = self.data[n_plus_one]
+
+            if ((pointrec.bound_via == Field_5_118.GCIRC) or
+                (pointrec.bound_via == Field_5_118.GCIRC_RET)):
+                # Great circle doesn't require any interpolation, just put the
+                # point in.
+                pointlist.append(pointrec.point_geodesy)
+            elif ((pointrec.bound_via == Field_5_118.RHUMB) or
+                  (pointrec.bound_via == Field_5_118.RHUMB_RET)):
+                pointlist.extend(rhumb_interpolate(pointrec,
+                                                  self.rhumb_interp_distance,
+                                                  nextpointrec))
+            elif ((pointrec.bound_via == Field_5_118.CIRC) or
+                  (pointrec.bound_via == Field_5_118.CIRC_RET) or
+                  (pointrec.bound_via == Field_5_118.CCWARC) or
+                  (pointrec.bound_via == Field_5_118.CWARC) or
+                  (pointrec.bound_via == Field_5_118.CCWARC_RET) or
+                  (pointrec.bound_via == Field_5_118.CWARC_RET)):
+                # Circles, cw, and ccw arcs are all just different cases of
+                # arc interpolation.
+                pointlist.extend(arc_interpolate(pointrec,
+                                                 self.arc_interp_distance,
+                                                 nextpointrec))
+            # End records need a closing data point added.
+            if ((pointrec.bound_via == Field_5_118.GCIRC_RET) or
+                (pointrec.bound_via == Field_5_118.CIRC_RET) or
+                (pointrec.bound_via == Field_5_118.RHUMB_RET) or
+                (pointrec.bound_via == Field_5_118.CCWARC_RET) or
+                (pointrec.bound_via == Field_5_118.CWARC_RET)):
+                pointlist.append(pointlist[0])
+        return pointlist

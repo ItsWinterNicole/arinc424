@@ -1,7 +1,9 @@
 from collections import defaultdict
 from .ch5enums import StrTableWDefault, StrTable, GenericField, auto
 from .ch5enums import CardinalDir, IntentionalBlank, DeclnCardinal, FixedReal
+from .ch5enums import FixedRealDegrees
 from pygeodesy.ellipsoidalExact import LatLon
+from math import pi
 import string
 
 # TODO This is only returned temporarily.
@@ -13,6 +15,13 @@ class Field():
 
     def decode(self):
         return self.decode_fn(self.value)
+
+class FieldOptionalBlank(Field):
+    def __init__(self, name, value, decode_fn):
+        if (IntentionalBlank.validate(value)):
+            super().__init__(name, value, IntentionalBlank)
+        else:
+            super().__init__(name, value, decode_fn)
 
 class Field_5_002(StrTable):
     STANDARD = ('S', 'Standard')
@@ -1314,39 +1323,31 @@ def field_117(value):
 
 
 # 5.118 Boundary Via (BDRY VIA)
-def field_118(value):
-    s = ''
-    match value[0]:
-        case 'C':
-            s += 'Circle'
-        case 'G':
-            s += 'Great Circle'
-        case 'H':
-            s += 'Rhumb Line'
-        case 'L':
-            s += 'Counter Clockwise ARC'
-        case 'R':
-            s += 'Clockwise ARC'
-        case _:
-            print("BDRY VIA UNKNOWN:", value)
-            raise ValueError("Invalid Boundary Via")
-
-    if value[1] == 'E':
-        s += ', End of description, return to origin point'
-
-    return s
-
+class Field_5_118(StrTableWDefault):
+    UNKNOWN =    (auto(), '<UNKNOWN>')
+    CIRC =       ('C ', 'Circle')
+    GCIRC =      ('G ', 'Great Circle')
+    RHUMB =      ('H ', 'Rhumb Line')
+    CCWARC =     ('L ', 'Counter Clockwise ARC')
+    CWARC =      ('R ', 'Clockwise ARC')
+    CIRC_RET =   ('CE', 'Circle, Returning to origin')
+    GCIRC_RET =  ('GE', 'Great Circle, Returning to origin')
+    RHUMB_RET =  ('HE', 'Rhumb Line, Returning to origin')
+    CCWARC_RET = ('LE', 'Counter Clockwise ARC, Returning to origin')
+    CWARC_RET =  ('RE', 'Clockwise ARC, Returning to origin')
 
 # 5.119 Arc Distance (ARC DIST)
-class Field_5_119(GenericField):
-    #TODO
-    pass
+class Field_5_119(FixedReal):
+    # CWWWF is the format with WWWF being digits, and F being the
+    # floating point portion of the number. C is the DeclnCardinal portion.
+    dplaces = 1
+    valpos = range(0,4)
 
 
 # 5.120 ‘Arc Bearing (ARC BRG)
-class Field_5_120(GenericField):
-    #TODO
-    pass
+class Field_5_120(FixedRealDegrees):
+    dplaces = 1
+    valpos = range(0,4)
 
 
 # 5.121 Lower/Upper Limit

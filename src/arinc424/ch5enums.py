@@ -1,4 +1,5 @@
 from enum import Enum, auto
+from math import pi
 
 class GenericField(object):
     def __init__(self, value):
@@ -27,6 +28,15 @@ class FixedReal(object):
 
     def __complex__(self):
         return (complex(float(self)))
+
+class FixedRealDegrees(FixedReal):
+    @property
+    def radians(self):
+        return self.value * (pi/180)
+
+    @radians.setter
+    def radians(self, value):
+        self.value = value * (180/pi)
 
 class IntentionalBlank(Enum):
     @classmethod

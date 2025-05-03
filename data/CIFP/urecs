@@ -1,0 +1,34 @@
+SUSAURK2MCHINA     A00101L    G N39335300W121252000                              03000A17999MCHINA MOA                     715441703
+SUSAURK2MCHINA     A00102C                                                                         FAA OAKLAND ARTCC       715451703
+SUSAURK2MCHINA     A00200L    G N40065600W121323000                                                                        715461703
+SUSAURK2MCHINA     A00300L    G N40072200W121095300                                                                        715471703
+SUSAURK2MCHINA     A00400L    L N39511200W120542000N39104900W12016110005003240                                             715481703
+SUSAURK2MCHINA     A00500L    GEN39383500W121095100                                                                        715491703
+SUSAURK2MFALLON S2 A00101L    G N39060500W118333700                              00100A17999MFALLON SOUTH 2 MOA            720831703
+SUSAURK2MFALLON S2 A00102C                                                                         FAA OAKLAND ARTCC       720841703
+SUSAURK2MFALLON S2 A00200L    G N39100000W117230300                                                                        720851703
+SUSAURK2MFALLON S2 A00300L    G N38430000W118020300                                                                        720861703
+SUSAURK2MFALLON S2 A00400L    G N38430000W118113300                                                                        720871703
+SUSAURK2MFALLON S2 A00500L    GEN38580000W118425400                                                                        720881703
+SUSAURK2MFALLON S2 B00600L    CE                   N38521200W1175533000030       02000A17999MFALLON SOUTH 2 MOA            720891703
+SUSAURK2MWALKER H  A00101L    H N38350000W119300000                              13500M17999MWALKER HIGH MOA               754242008
+SUSAURK2MWALKER H  A00102C                                                                         FAA OAKLAND ARTCC       754252008
+SUSAURK2MWALKER H  A00200L    G N38350000W119050000                                                                        754262008
+SUSAURK2MWALKER H  A00300L    G N38150000W119200000                                                                        754272008
+SUSAURK2MWALKER H  A00400L    G N38120000W119410000                                                                        754282008
+SUSAURK2MWALKER H  A00500L    GEN38300000W119410000                                                                        754292008
+SUSAUCK2AKBAB PAC  A00100     CE                   N39080996W1212611700050       GND  A04100MBEALE AFB                     563652207
+SUSAUCK2AKBAB PAC  B00200     R N39020808W121155672N39080996W12126117001001270   01600M04100MBEALE AFB                     563662207
+SUSAUCK2AKBAB PAC  B00300     G N39180601W121243750                                                                        563672207
+SUSAUCK2AKBAB PAC  B00400     L N39130799W121252466N39080996W12126117000500070                                             563682207
+SUSAUCK2AKBAB PAC  B00500     GEN39050914W121210399                                                                        563692207
+SUSAUCK2AKBAB PAC  C00600     R N39180601W121243750N39080996W12126117001000070   02600M04100MBEALE AFB                     563702207
+SUSAUCK2AKBAB PAC  C00700     G N39020808W121155672                                                                        563712207
+SUSAUCK2AKBAB PAC  C00800     L N39050914W121210399N39080996W12126117000501270                                             563722207
+SUSAUCK2AKBAB PAC  C00900     GEN39130799W121252466                                                                        563732207
+SUSAUCK2AKSMF PAC  A00100     G N38401765W121304954                              GND  A04100MSACRAMENTO INTL AIRPORT       576751703
+SUSAUCK2AKSMF PAC  A00200     L N38445994W121303694N38414400W12135270000500492                                             576761703
+SUSAUCK2AKSMF PAC  A00300     R N38452984W121311474N38451500W12133470000200829                                             576771703
+SUSAUCK2AKSMF PAC  A00400     L N38464394W121352945N38414400W12135270000503596                                             576781703
+SUSAUCK2AKSMF PAC  A00500     REN38370676W121325844N38381800W12130550000202337                                             576791703
+SUSAUCK2AKSMF PAC  B00600     CE                   N38414400W1213527000100       01600M04100MSACRAMENTO INTL AIRPORT       576801703

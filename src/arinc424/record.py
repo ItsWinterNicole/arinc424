@@ -1,5 +1,5 @@
 import arinc424.decoder as decoder
-from arinc424.decoder import Field
+from arinc424.decoder import Field, FieldOptionalBlank
 from prettytable import PrettyTable
 
 class Arinc424Decoder():
@@ -139,6 +139,32 @@ class SeqType(Record):
     @property
     def seq_no(self):
         return self.get_seq_no()
+
+class BoundaryDefPtSeqType(SeqType):
+    @property
+    def bound_via(self):
+        return decoder.Field_5_118(self.line[self.via_idx:self.via_idx+2])
+
+    @property
+    def point_geodesy(self):
+        return decoder.Field_5_036_5_037(
+            self.line[self.via_idx+2:self.via_idx+21]).geodesy
+
+    @property
+    def arc_focus_geodesy(self):
+        return decoder.Field_5_036_5_037(
+            self.line[self.via_idx+21:self.via_idx+40]).geodesy
+
+    @property
+    def arc_radius(self):
+        return float(decoder.Field_5_119(
+            self.line[self.via_idx+40:self.via_idx+44]))
+
+    @property
+    def arc_bering(self):
+        return float(decoder.Field_5_120(
+            self.line[self.via_idx+44:self.via_idx+48]))
+
 
 # 4.1.5 Holding Pattern Records (EP)
 class Holding(MultiRecord):
@@ -515,7 +541,6 @@ class CompanyRoute(SeqType):
             Field("Section Code",                       r[4:6],         decoder.Field_5_004),
             Field("From Airport/Fix",                   r[6:11],        decoder.Field_5_075),
             Field("ICAO Code",                          r[12:14],       decoder.Field_5_014),
-            Field("Airspace Center",                    r[9:14],        decoder.Field_5_214),
             Field("Section Code (2)",                   r[14:16],       decoder.Field_5_004),
             Field("To Airport/Fix",                     r[16:21],       decoder.Field_5_075),
             Field("ICAO Code (2)",                      r[22:24],       decoder.Field_5_014),
@@ -525,17 +550,19 @@ class CompanyRoute(SeqType):
             Field("VIA",                                r[39:42],       decoder.Field_5_077),
             Field("SID/STAR/App/Awy",                   r[42:48],       decoder.Field_5_078),
             Field("Area Code",                          r[48:51],       decoder.Field_5_003),
-            Field("To Fix",                             r[51:57],       decoder.Field_5_132),
-            Field("ICAO Code",                          r[57:59],       decoder.field_118),
-            Field("Section Code (4)",                   r[59],          decoder.field_036),
-            Field("RUnway Trans",                       r[61:66],       decoder.field_037),
-            Field("ENRT Trans",                         r[66:71],       decoder.field_036),
-            Field("Cruise Altitude",                    r[72:77],       decoder.field_037),
-            Field("Terminal/Alternate Airport",         r[77:81],       decoder.Field_5_119),
-            Field("ICAO Code",                          r[81:83],       decoder.Field_5_120),
-            Field("Alternate Distance",                 r[83:87],       decoder.Field_5_211),
-            Field("Cost Index",                         r[87:90],       decoder.Field_5_121),
-            Field("Enroute Alternate Airport",          r[90:94],       decoder.Field_5_133),
+            Field("To Fix",                             r[51:57],       decoder.Field_5_083),
+            Field("ICAO Code",                          r[57:59],       decoder.Field_5_014),
+            Field("Section Code (4)",                   r[59:60],       decoder.Field_5_004),
+            # TODO Somehow these got F'ed but they're not important to CIFP,
+            # so fixing them is lo pri.
+            #Field("RUnway Trans",                       r[61:66],       decoder.field_037),
+            #Field("ENRT Trans",                         r[66:71],       decoder.field_036),
+            #Field("Cruise Altitude",                    r[72:77],       decoder.field_037),
+            #Field("Terminal/Alternate Airport",         r[77:81],       decoder.Field_5_119),
+            Field("ICAO Code",                          r[81:83],       decoder.Field_5_014),
+            #Field("Alternate Distance",                 r[83:87],       decoder.Field_5_211),
+            #Field("Cost Index",                         r[87:90],       decoder.Field_5_121),
+            #Field("Enroute Alternate Airport",          r[90:94],       decoder.Field_5_133),
             Field("File Record No",                     r[123:128],     decoder.Field_5_031),
             Field("Cycle Date",                         r[128:132],     decoder.field_032)
         ]
@@ -777,12 +804,13 @@ class CruisingTables(SeqType):
         ]
 
 # 4.1.17 FIR/UIR Records (UF)
-class FIR_UIR(MultiRecord, SeqType):
+class FIR_UIR(MultiRecord, BoundaryDefPtSeqType):
     seq_cmprange = [range(6,15)]
     seq_no_pos = range(15,19)
     cont_cmprange = [range(0,19)]
     cont_idx = 19
     app_idx = 20
+    via_idx = 32
 
     def read(self):
         if int(self.line[self.cont_idx]) < 2:
@@ -798,12 +826,6 @@ class FIR_UIR(MultiRecord, SeqType):
 
     # 4.1.17.1 FIR/UIR Primary Records
     def read_primary(self, r):
-        loclat = decoder.IntentionalBlank \
-                 if (decoder.IntentionalBlank.validate(r[34:53])) else \
-                 decoder.Field_5_036_5_037
-        arclat = decoder.IntentionalBlank \
-                 if (decoder.IntentionalBlank.validate(r[53:72])) else \
-                 decoder.Field_5_036_5_037
         return [
             Field("Record Type",                         r[0],          decoder.Field_5_002),
             Field("Customer / Area Code",                r[1:4],        decoder.Field_5_003),
@@ -818,11 +840,15 @@ class FIR_UIR(MultiRecord, SeqType):
             Field("Reporting Units Speed",               r[28],         decoder.Field_5_122),
             Field("Reporting Units Altitude",            r[29],         decoder.field_123),
             Field("Entry Report",                        r[30],         decoder.Field_5_124),
-            Field("Boundary Via",                        r[32:34],      decoder.field_118),
-            Field("FIR/UIR Lat/Lon",                     r[34:53],      loclat),
-            Field("Arc Origin Lat/Lon",                  r[53:72],      arclat),
-            Field("Arc Distance",                        r[72:76],      decoder.Field_5_119),
-            Field("Arc Bearing",                         r[76:80],      decoder.Field_5_120),
+            Field("Boundary Via",                        r[32:34],      decoder.Field_5_118),
+            FieldOptionalBlank(
+                  "FIR/UIR Lat/Lon",                     r[34:53],      decoder.Field_5_036_5_037),
+            FieldOptionalBlank(
+                  "Arc Origin Lat/Lon",                  r[53:72],      decoder.Field_5_036_5_037),
+            FieldOptionalBlank(
+                  "Arc Distance",                        r[72:76],      decoder.Field_5_119),
+            FieldOptionalBlank(
+                  "Arc Bearing",                         r[76:80],      decoder.Field_5_120),
             Field("FIR Upper Limit",                     r[80:85],      decoder.Field_5_121),
             Field("UIR Lower Limit",                     r[85:90],      decoder.Field_5_121),
             Field("UIR Upper Limit",                     r[90:95],      decoder.Field_5_121),
@@ -843,12 +869,13 @@ class FIR_UIR(MultiRecord, SeqType):
 
 
 # 4.1.18 Restrictive Airspace Records (UR)
-class RestrictiveAirspace(MultiRecord, SeqType):
+class RestrictiveAirspace(MultiRecord, BoundaryDefPtSeqType):
     seq_cmprange = [range(8,19)]
     seq_no_pos = range(20,24)
     cont_cmprange = [range(0,24)]
     cont_idx = 24
     app_idx = 25
+    via_idx = 30
 
     def read(self):
         if int(self.line[self.cont_idx]) < 2:
@@ -867,12 +894,6 @@ class RestrictiveAirspace(MultiRecord, SeqType):
 
     # 4.1.18.1 Restrictive Airspace Primary Records
     def read_primary(self, r):
-        loclat = decoder.IntentionalBlank \
-                 if (decoder.IntentionalBlank.validate(r[32:51])) else \
-                 decoder.Field_5_036_5_037
-        arclat = decoder.IntentionalBlank \
-                 if (decoder.IntentionalBlank.validate(r[51:70])) else \
-                 decoder.Field_5_036_5_037
         return [
             Field("Record Type",                         r[0],          decoder.Field_5_002),
             Field("Customer / Area Code",                r[1:4],        decoder.Field_5_003),
@@ -886,11 +907,15 @@ class RestrictiveAirspace(MultiRecord, SeqType):
             Field("Level",                               r[25],         decoder.Field_5_019),
             Field("Time Code",                           r[26],         decoder.Field_5_131),
             Field("NOTAM",                               r[27],         decoder.Field_5_132),
-            Field("Boundary Via",                        r[30:32],      decoder.field_118),
-            Field("Lat/Lon",                             r[32:51],      loclat),
-            Field("Arc Origin Lat/Lon",                  r[51:70],      arclat),
-            Field("Arc Distance",                        r[70:74],      decoder.Field_5_119),
-            Field("Arc Bearing",                         r[74:78],      decoder.Field_5_120),
+            Field("Boundary Via",                        r[30:32],      decoder.Field_5_118),
+            FieldOptionalBlank(
+                  "Lat/Lon",                             r[32:51],      decoder.Field_5_036_5_037),
+            FieldOptionalBlank(
+                  "Arc Origin Lat/Lon",                  r[51:70],      decoder.Field_5_036_5_037),
+            FieldOptionalBlank(
+                  "Arc Distance",                        r[70:74],      decoder.Field_5_119),
+            FieldOptionalBlank(
+                  "Arc Bearing",                         r[74:78],      decoder.Field_5_120),
             Field("Lower Limit",                         r[82:86],      decoder.Field_5_121),
             Field("Unit Indicator",                      r[86],         decoder.Field_5_133),
             Field("Upper Limit",                         r[87:92],      decoder.Field_5_121),
@@ -1454,12 +1479,13 @@ class PreferredRoute(MultiRecord, SeqType):
 # Controlled Airspace associated with Airports and
 # Heliports.
 #
-class ControlledAirspace(MultiRecord, SeqType):
+class ControlledAirspace(MultiRecord, BoundaryDefPtSeqType):
     seq_cmprange = [range(8,14), range(16,17), range(19,20)]
     seq_no_pos = range(20,24)
     cont_cmprange = [range(0,24)]
     cont_idx = 24
     app_idx = 25
+    via_idx = 30
 
     def read(self) -> list:
         if int(self.line[self.cont_idx]) < 2:
@@ -1474,12 +1500,6 @@ class ControlledAirspace(MultiRecord, SeqType):
 
     # 4.1.25.1 Controlled Airspace Primary Records
     def read_primary(self, r):
-        loclat = decoder.IntentionalBlank \
-                 if (decoder.IntentionalBlank.validate(r[32:51])) else \
-                 decoder.Field_5_036_5_037
-        arclat = decoder.IntentionalBlank \
-                 if (decoder.IntentionalBlank.validate(r[51:70])) else \
-                 decoder.Field_5_036_5_037
         return [
             Field("Record Type",                         r[0],          decoder.Field_5_002),
             Field("Customer / Area Code",                r[1:4],        decoder.Field_5_003),
@@ -1495,11 +1515,15 @@ class ControlledAirspace(MultiRecord, SeqType):
             Field("Level",                               r[25],         decoder.Field_5_019),
             Field("Time Code",                           r[26],         decoder.Field_5_131),
             Field("NOTAM",                               r[27],         decoder.Field_5_132),
-            Field("Boundary Via",                        r[30:32],      decoder.field_118),
-            Field("Lat/Lon",                             r[32:51],      loclat),
-            Field("Arc Origin Lat/Lon",                  r[51:70],      arclat),
-            Field("Arc Distance",                        r[70:74],      decoder.Field_5_119),
-            Field("Arc Bearing",                         r[74:78],      decoder.Field_5_120),
+            Field("Boundary Via",                        r[30:32],      decoder.Field_5_118),
+            FieldOptionalBlank(
+                  "Lat/Lon",                             r[32:51],      decoder.Field_5_036_5_037),
+            FieldOptionalBlank(
+                  "Arc Origin Lat/Lon",                  r[51:70],      decoder.Field_5_036_5_037),
+            FieldOptionalBlank(
+                  "Arc Distance",                        r[70:74],      decoder.Field_5_119),
+            FieldOptionalBlank(
+                  "Arc Bearing",                         r[74:78],      decoder.Field_5_120),
             Field("RNP",                                 r[78:81],      decoder.Field_5_211),
             Field("Lower Limit",                         r[81:86],      decoder.Field_5_121),
             Field("Unit Indicator",                      r[86],         decoder.Field_5_133),
@@ -2145,12 +2169,6 @@ class LocalizerGlideslope(MultiRecord):
                     # return self.read_flight1(self.line)
 
     def read_primary(self, r):
-        loclat = decoder.IntentionalBlank \
-                 if (decoder.IntentionalBlank.validate(r[32:51])) else \
-                 decoder.Field_5_036_5_037
-        poslat = decoder.IntentionalBlank \
-                 if (decoder.IntentionalBlank.validate(r[55:74])) else \
-                 decoder.Field_5_036_5_037
         return [
             Field("Record Type",                                r[0],          decoder.Field_5_002),
             Field("Customer / Area Code",                       r[1:4],        decoder.Field_5_003),
@@ -2162,9 +2180,11 @@ class LocalizerGlideslope(MultiRecord):
             Field("Continuation Record No",                     r[21],         decoder.Field_5_016),
             Field("Localizer Frequency",                        r[22:27],      decoder.field_045),
             Field("Runway Identifier",                          r[27:32],      decoder.Field_5_046),
-            Field("Localizer Lat/Lon",                          r[32:51],      loclat),
+            FieldOptionalBlank(
+                  "Localizer Lat/Lon",                          r[32:51],      decoder.Field_5_036_5_037),
             Field("Localizer Bearing",                          r[51:55],      decoder.Field_5_047),
-            Field("Glide Slope Lat/Lon",                        r[55:74],      poslat),
+            FieldOptionalBlank(
+                  "Glide Slope Lat/Lon",                        r[55:74],      decoder.Field_5_036_5_037),
             Field("Localizer Position",                         r[74:78],      decoder.Field_5_048),
             Field("Localizer Position Reference",               r[78],         decoder.Field_5_049),
             Field("Glide Slope Position",                       r[79:83],      decoder.Field_5_050),
@@ -2473,12 +2493,6 @@ class VHFNavaid(MultiRecord):
                     return self.read_flight_plan1(self.line)
 
     def read_primary(self, r):
-        vorlat = decoder.IntentionalBlank \
-                 if (decoder.IntentionalBlank.validate(r[32:51])) else \
-                 decoder.Field_5_036_5_037
-        dmelat = decoder.IntentionalBlank \
-                 if (decoder.IntentionalBlank.validate(r[55:74])) else \
-                 decoder.Field_5_036_5_037
         return [
             Field("Record Type",                 r[0],          decoder.Field_5_002),
             Field("Customer / Area Code",        r[1:4],        decoder.Field_5_003),
@@ -2490,9 +2504,11 @@ class VHFNavaid(MultiRecord):
             Field("Continuation Record No",      r[21],         decoder.Field_5_016),
             Field("Frequency",                   r[22:27],      decoder.field_034),
             Field("Class",                       r[27:29],      decoder.Field_5_035),
-            Field("VOR Lat/Lon",                 r[32:51],      vorlat),
+            FieldOptionalBlank(
+                  "VOR Lat/Lon",                 r[32:51],      decoder.Field_5_036_5_037),
             Field("DME Ident",                   r[51:55],      decoder.Field_5_038),
-            Field("DME Lat/Lon",                 r[55:74],      dmelat),
+            FieldOptionalBlank(
+                  "DME Lat/Lon",                 r[55:74],      decoder.Field_5_036_5_037),
             Field("Station Declination",         r[74:79],      decoder.Field_5_066),
             Field("DME Elevation",               r[79:84],      decoder.Field_5_040),
             Field("Figure of Merit",             r[84],         decoder.Field_5_149),
@@ -2537,19 +2553,15 @@ class VHFNavaid(MultiRecord):
         ]
 
     def read_flight_plan1(self, r):
-        vorlat = decoder.IntentionalBlank \
-                 if (decoder.IntentionalBlank.validate(r[32:51])) else \
-                 decoder.Field_5_036_5_037
-        dmelat = decoder.IntentionalBlank \
-                 if (decoder.IntentionalBlank.validate(r[55:74])) else \
-                 decoder.Field_5_036_5_037
         return [
             Field("Continuation Record No",      r[21],         decoder.Field_5_016),
             Field("Frequency",                   r[22:27],      decoder.field_034),
             Field("Class",                       r[27:29],      decoder.Field_5_035),
-            Field("VOR Lat/Lon",                 r[32:51],      vorlat),
+            FieldOptionalBlank(
+                  "VOR Lat/Lon",                 r[32:51],      decoder.Field_5_036_5_037),
             Field("DME Ident",                   r[51:55],      decoder.Field_5_038),
-            Field("DME Lat/Lon",                 r[55:74],      dmelat),
+            FieldOptionalBlank(
+                  "DME Lat/Lon",                 r[55:74],      decoder.Field_5_036_5_037),
             Field("Station Declination",         r[74:79],      decoder.Field_5_066),
             Field("DME Elevation",               r[79:84],      decoder.Field_5_040),
             Field("Figure of Merit",             r[84],         decoder.Field_5_149),
