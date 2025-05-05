@@ -1,4 +1,3 @@
-from termcolor import colored
 from .record import Record, MultiRecord, SeqType
 from .record import Arinc424Decoder
 from .containers import RecGroup, SeqGroup, Collection
@@ -38,7 +37,7 @@ def search(file, filters):
                     continue
             #print(r.raw)
             count = count + 1
-        print(colored(f"Found {count} records that contain {filters}", 'green' if count else 'red'))
+        print(f"Found {count} records that contain {filters}")
 
 
 def read_file(path):
