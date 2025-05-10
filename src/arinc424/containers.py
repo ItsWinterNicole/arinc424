@@ -1,4 +1,4 @@
-from .record import Record, MultiRecord, SeqType, BoundaryDefPtSeqType
+from .record import Record, MultiRecord, SeqType, BoundaryDefPtSeqType, FIR_UIR
 from .decoder import Field_5_118
 from collections import UserList
 import math
@@ -403,45 +403,75 @@ class BoundaryDefSeqGroup(SeqGroup):
 
     @property
     def boundary_point_geodesy_list(self):
-        pointlist = []
-        for n in range(len(self.data)):
-            if (isinstance(self.data[n], RecGroup) is True):
-                pointrec = self.data[n][0]
+        rvdict = {}
+        # Build the rv dict in a two stage approach.
+        # Stage one: parse thru all the records and work out the
+        #     A, B, C, etc. record sets.
+        for r in self.data:
+            if (isinstance(r, RecGroup) is True):
+                pointrec = r[0]
             else:
-                pointrec = self.data[n]
-            # likely we'll need the next rec too.
-            n_plus_one = (n + 1) % len(self.data)
-            if (isinstance(self.data[n_plus_one], RecGroup) is True):
-                nextpointrec = self.data[n_plus_one][0]
+                pointrec = r
+            if (type(pointrec) is FIR_UIR):
+                multiple_id = ''
             else:
-                nextpointrec = self.data[n_plus_one]
+                multiple_id = pointrec.line[19]
+            if (multiple_id not in rvdict.keys()):
+                rvdict[multiple_id] = {
+                    'start': pointrec,
+                    'reclist': [pointrec],
+                    'pointlist': []
+                    }
+            else:
+                rvdict[multiple_id]['reclist'].append(pointrec)
 
-            if ((pointrec.bound_via == Field_5_118.GCIRC) or
-                (pointrec.bound_via == Field_5_118.GCIRC_RET)):
-                # Great circle doesn't require any interpolation, just put the
-                # point in.
-                pointlist.append(pointrec.point_geodesy)
-            elif ((pointrec.bound_via == Field_5_118.RHUMB) or
-                  (pointrec.bound_via == Field_5_118.RHUMB_RET)):
-                pointlist.extend(rhumb_interpolate(pointrec,
-                                                  self.rhumb_interp_distance,
-                                                  nextpointrec))
-            elif ((pointrec.bound_via == Field_5_118.CIRC) or
-                  (pointrec.bound_via == Field_5_118.CIRC_RET) or
-                  (pointrec.bound_via == Field_5_118.CCWARC) or
-                  (pointrec.bound_via == Field_5_118.CWARC) or
-                  (pointrec.bound_via == Field_5_118.CCWARC_RET) or
-                  (pointrec.bound_via == Field_5_118.CWARC_RET)):
-                # Circles, cw, and ccw arcs are all just different cases of
-                # arc interpolation.
-                pointlist.extend(arc_interpolate(pointrec,
-                                                 self.arc_interp_distance,
-                                                 nextpointrec))
-            # End records need a closing data point added.
-            if ((pointrec.bound_via == Field_5_118.GCIRC_RET) or
-                (pointrec.bound_via == Field_5_118.CIRC_RET) or
-                (pointrec.bound_via == Field_5_118.RHUMB_RET) or
-                (pointrec.bound_via == Field_5_118.CCWARC_RET) or
-                (pointrec.bound_via == Field_5_118.CWARC_RET)):
-                pointlist.append(pointlist[0])
-        return pointlist
+        # Stage two: parse & interpolate the individual record sets
+        #     into point lists
+        for k in rvdict:
+            reclist = rvdict[k]['reclist']
+            for n in range(len(reclist)):
+                pointrec = reclist[n]
+                n_plus_one = (n + 1) % len(reclist)
+                nextpointrec = reclist[n_plus_one]
+
+                if ((pointrec.bound_via == Field_5_118.GCIRC) or
+                    (pointrec.bound_via == Field_5_118.GCIRC_RET)):
+                    # Great circle doesn't require any interpolation, just put the
+                    # point in.
+                    rvdict[k]['pointlist'].append(pointrec.point_geodesy)
+                elif ((pointrec.bound_via == Field_5_118.RHUMB) or
+                      (pointrec.bound_via == Field_5_118.RHUMB_RET)):
+                    rvdict[k]['pointlist'].extend(
+                        rhumb_interpolate(pointrec,
+                                          self.rhumb_interp_distance,
+                                          nextpointrec))
+                elif ((pointrec.bound_via == Field_5_118.CIRC) or
+                      (pointrec.bound_via == Field_5_118.CIRC_RET)):
+                    rvdict[k]['pointlist'].extend(
+                        arc_interpolate(pointrec,
+                                        self.arc_interp_distance,
+                                        pointrec))
+                elif ((pointrec.bound_via == Field_5_118.CCWARC) or
+                      (pointrec.bound_via == Field_5_118.CWARC) or
+                      (pointrec.bound_via == Field_5_118.CCWARC_RET) or
+                      (pointrec.bound_via == Field_5_118.CWARC_RET)):
+                    # Circles, cw, and ccw arcs are all just different cases of
+                    # arc interpolation.
+                    rvdict[k]['pointlist'].extend(
+                        arc_interpolate(pointrec,
+                                        self.arc_interp_distance,
+                                        nextpointrec))
+                # End records need a closing data point added.
+                if ((pointrec.bound_via == Field_5_118.GCIRC_RET) or
+                    (pointrec.bound_via == Field_5_118.CIRC_RET) or
+                    (pointrec.bound_via == Field_5_118.RHUMB_RET) or
+                    (pointrec.bound_via == Field_5_118.CCWARC_RET) or
+                    (pointrec.bound_via == Field_5_118.CWARC_RET)):
+                    rvdict[k]['pointlist'].append(
+                        rvdict[k]['pointlist'][0]
+                    )
+            del rvdict[k]['reclist']
+
+        if (type(pointrec) is FIR_UIR):
+            return rvdict['']['pointlist']
+        return rvdict

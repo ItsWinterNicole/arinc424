@@ -1480,7 +1480,7 @@ class PreferredRoute(MultiRecord, SeqType):
 # Heliports.
 #
 class ControlledAirspace(MultiRecord, BoundaryDefPtSeqType):
-    seq_cmprange = [range(8,14), range(16,17), range(19,20)]
+    seq_cmprange = [range(8,14), range(16,17)]
     seq_no_pos = range(20,24)
     cont_cmprange = [range(0,24)]
     cont_idx = 24
