@@ -365,6 +365,11 @@ def arc_interpolate(r, distance, endpt):
         temp = r.arc_focus_geodesy.distanceTo2(endpt.point_geodesy)
         end_bering = temp[1]
         bering_range = end_bering - start_bering
+        if (((bering_range > 0) and (direction > 0)) or
+            ((bering_range < 0) and (direction < 0))):
+            bering_range = abs(bering_range)
+        else:
+            bering_range = 360 - (bering_range * direction * -1)
     else:
         # if r and endpt are the same, we have the special case of a circle.
         # Start bering can be 0, end bering & bering_range 360, and we can
@@ -372,12 +377,13 @@ def arc_interpolate(r, distance, endpt):
         start_bering = 0
         end_bering = 360
         bering_range = 360
-    interp_points = math.ceil((bering_range * direction)/distance)
+    interp_points = math.ceil(bering_range/distance)
     true_dist = bering_range/interp_points
     rvlist = []
     for n in range(interp_points):
         res_pt = r.arc_focus_geodesy.destination(
-            r.arc_radius * nmi2mtr, (start_bering + (n * true_dist)))
+            r.arc_radius * nmi2mtr,
+            (start_bering + (n * true_dist * direction)))
         rvlist.append(res_pt)
     #print (f"Arc complete.")
     return rvlist
