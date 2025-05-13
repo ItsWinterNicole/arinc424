@@ -1,19 +1,17 @@
-from .record import Record, MultiRecord, SeqType
-from .record import Arinc424Decoder
-from .containers import RecGroup, SeqGroup, Collection
+from .record import Record, Arinc424Decoder
+from .containers import Collection
 import os
 
-allrecs = Collection()
 def parse(line):
     """
-    Parse an ARINC-424 record and convertthe
+    Parse an ARINC-424 record and convert the
     contents to a record or record group
     instance..
     """
     r = Record.from_line(line)
     if r.read():
-        #print ("Read completed on:")
-        #print (line)
+        # IF you really must print the decoded record.
+        # Arinc424Decoder(rec.read()).decode()
         allrecs.append(r)
         return True
     return False
@@ -35,7 +33,6 @@ def search(file, filters):
             elif isinstance(filters, list):
                 if all(map(r.raw.__contains__, filters)) is False:
                     continue
-            #print(r.raw)
             count = count + 1
         print(f"Found {count} records that contain {filters}")
 
@@ -44,16 +41,11 @@ def read_file(path):
     """
     Parse all ARINC-424 records within a file.
     """
-    allrecs.clear()
+    allrecs = Collection()
     with open(path) as f:
         for line in f.readlines():
-            #print()
             parse(line)
             print(line[123:128])
-    # PRINT: The next two lines are the parts that print everything out!!!
-    #for rec in allrecs:
-    #    Arinc424Decoder(rec.read()).decode()
-        pass
     print (f"Allrecs has {len(allrecs)} items")
     print (f"Found {len(allrecs.barerec)} solo records,")
     print (f"{len(allrecs.recgroups)} record groups,")
@@ -65,10 +57,7 @@ def read_folder(path):
     """
     Parse all ARINC-424 records for every file in a given folder.
     """
-    frec = []
-    fgr = []
+    fldr_recs = Collection()
     for file in os.scandir(path):
-        (x, y) = read_file(os.path.join(path, file.name))
-        frec.extend(x)
-        fgr.extend(y)
-    return (frec, fgr)
+        fldr_recs.extend(read_file(os.path.join(path, file.name)))
+    return fldr_recs
