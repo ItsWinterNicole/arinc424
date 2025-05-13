@@ -2,7 +2,7 @@ from .record import Record, Arinc424Decoder
 from .containers import Collection
 import os
 
-def parse(line):
+def parse(line, coll = None):
     """
     Parse an ARINC-424 record and convert the
     contents to a record or record group
@@ -12,7 +12,8 @@ def parse(line):
     if r.read():
         # IF you really must print the decoded record.
         # Arinc424Decoder(rec.read()).decode()
-        allrecs.append(r)
+        if (coll is not None):
+            coll.append(r)
         return True
     return False
 
@@ -44,7 +45,7 @@ def read_file(path):
     allrecs = Collection()
     with open(path) as f:
         for line in f.readlines():
-            parse(line)
+            parse(line, allrecs)
             print(line[123:128])
     print (f"Allrecs has {len(allrecs)} items")
     print (f"Found {len(allrecs.barerec)} solo records,")
