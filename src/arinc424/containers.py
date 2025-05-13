@@ -400,12 +400,12 @@ class BoundaryDefSeqGroup(SeqGroup):
         #if (isinstance(nr, RecGroup)):
         #    print(isinstance(nr[0], BoundaryDefPtSeqType))
         #print(isinstance(nr, BoundaryDefPtSeqType))
-        if ((SeqGroup.validate(nr) is False) or
-            (isinstance(nr, BoundaryDefPtSeqType) is False) or
-            ((isinstance(nr, RecGroup) is True) and
-             (isinstance(nr[0], BoundaryDefPtSeqType) is False))):
-            return False
-        return True
+        if ((SeqGroup.validate(nr) is True) and
+            ((isinstance(nr, BoundaryDefPtSeqType) is True) or
+             ((isinstance(nr, RecGroup) is True) and
+              (isinstance(nr[0], BoundaryDefPtSeqType) is True)))):
+            return True
+        return False
 
     @property
     def boundary_point_geodesy_list(self):
