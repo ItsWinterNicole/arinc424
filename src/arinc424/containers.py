@@ -401,8 +401,8 @@ class BoundaryDefSeqGroup(SeqGroup):
         #    print(isinstance(nr[0], BoundaryDefPtSeqType))
         #print(isinstance(nr, BoundaryDefPtSeqType))
         if ((SeqGroup.validate(nr) is False) or
-            ((isinstance(nr, BoundaryDefPtSeqType) is False) and
-             (isinstance(nr, RecGroup) is True) and
+            (isinstance(nr, BoundaryDefPtSeqType) is False) or
+            ((isinstance(nr, RecGroup) is True) and
              (isinstance(nr[0], BoundaryDefPtSeqType) is False))):
             return False
         return True
